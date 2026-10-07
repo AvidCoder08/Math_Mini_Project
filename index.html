@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linear Algebra Automated Data Analysis Tool</title>
+  
+  <!-- Google Fonts: Fraunces (Headings), Source Serif 4 (Body), JetBrains Mono (Code/Math/Figures) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for High-Fidelity Mathematical Typesetting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Chart.js for Archival Styled Interactive Plots -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- PapaParse for Fast Client-Side CSV Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Archival Navigation & Header Bar -->
+  <header class="site-header">
+    <div class="header-container">
+      <div class="brand-block">
+        <span class="brand-symbol">A</span>
+        <h1 class="brand-title">Linear Algebra Automated Tool</h1>
+        <span class="brand-subtitle">10-Stage Pipeline</span>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" aria-label="Main Navigation">
+        <button class="nav-tab-btn active" data-tab="worksheet">
+          <span>📓</span> Worksheet
+        </button>
+        <button class="nav-tab-btn" data-tab="viva">
+          <span>📝</span> Viva Cheat Sheet
+        </button>
+        <button class="nav-tab-btn" data-tab="export">
+          <span>💾</span> Export Results
+        </button>
+      </nav>
+
+      <!-- Utility Controls -->
+      <div class="header-actions">
+        <div class="worker-status-badge" id="worker-status">
+          <span class="status-dot"></span>
+          <span id="worker-status-text">Worker Ready</span>
+        </div>
+        <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Light/Dark Inks">
+          <span id="theme-icon">◐</span>
+          <span id="theme-label">Ink Mode</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Grid -->
+  <div class="app-container">
+    
+    <!-- Left Sticky Configuration Sidebar -->
+    <aside class="settings-sidebar">
+      <div class="sidebar-title">
+        <span>Parameters & Data</span>
+        <span class="label-hint">Settings</span>
+      </div>
+
+      <!-- Dataset Source Selection -->
+      <div class="form-group">
+        <label class="form-label">
+          <span>Dataset Source</span>
+        </label>
+        <div class="source-selector">
+          <button type="button" class="source-btn active" data-source="housing">Housing</button>
+          <button type="button" class="source-btn" data-source="diabetes">Diabetes</button>
+          <button type="button" class="source-btn" data-source="upload">Upload</button>
+        </div>
+      </div>
+
+      <!-- CSV Upload Dropzone (Conditional) -->
+      <div class="form-group" id="upload-group" style="display: none;">
+        <label class="form-label">
+          <span>Custom CSV File</span>
+          <span class="label-hint">Drag & drop</span>
+        </label>
+        <div class="drop-zone" id="drop-zone">
+          <div class="drop-zone-text">Drop CSV here or click to browse</div>
+          <div class="loaded-file-badge" id="loaded-file-name" style="display: none;"></div>
+          <input type="file" id="file-input" class="file-input-hidden" accept=".csv,text/csv">
+        </div>
+      </div>
+
+      <!-- Target Column Selector -->
+      <div class="form-group">
+        <label class="form-label" for="target-select">
+          <span>Target Column (b)</span>
+          <span class="label-hint" id="target-count-hint">Numeric only</span>
+        </label>
+        <select id="target-select" class="select-input">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+
+      <!-- Variance Retention Target (PCA) -->
+      <div class="form-group">
+        <label class="form-label" for="var-target-slider">
+          <span>PCA Variance Target</span>
+          <span class="label-hint">Retain info</span>
+        </label>
+        <div class="slider-container">
+          <input type="range" id="var-target-slider" class="range-slider" min="50" max="99" value="90" step="1">
+          <span class="slider-val-badge" id="var-target-val">90%</span>
+        </div>
+      </div>
+
+      <!-- Train / Test Split Fraction -->
+      <div class="form-group">
+        <label class="form-label" for="test-frac-slider">
+          <span>Test Partition</span>
+          <span class="label-hint">Holdout</span>
+        </label>
+        <div class="slider-container">
+          <input type="range" id="test-frac-slider" class="range-slider" min="10" max="40" value="20" step="5">
+          <span class="slider-val-badge" id="test-frac-val">20%</span>
+        </div>
+      </div>
+
+      <!-- Mulberry32 PRNG Seed -->
+      <div class="form-group">
+        <label class="form-label" for="seed-input">
+          <span>RNG Seed</span>
+          <span class="label-hint">mulberry32</span>
+        </label>
+        <input type="number" id="seed-input" class="text-input" value="42" step="1">
+      </div>
+
+      <!-- Demonstration Collinearity Toggle -->
+      <div class="form-group">
+        <label class="checkbox-label" title="Appends synthetic c1 + c2 column to illustrate rank reduction & basis pruning">
+          <input type="checkbox" id="redundant-toggle" class="checkbox-input" checked>
+          <span>Add redundant feature <span class="mono">(c₁ + c₂)</span> to demonstrate rank reduction</span>
+        </label>
+      </div>
+
+      <!-- Primary Execution Trigger -->
+      <button type="button" class="btn-run" id="btn-run">
+        <span>▶</span> Run Decomposition
+      </button>
+
+      <!-- Live Telemetry Card -->
+      <div class="telemetry-card">
+        <div class="telemetry-row">
+          <span>Active Rows:</span>
+          <span class="telemetry-val" id="telemetry-rows">—</span>
+        </div>
+        <div class="telemetry-row">
+          <span>Raw Columns:</span>
+          <span class="telemetry-val" id="telemetry-cols">—</span>
+        </div>
+        <div class="telemetry-row">
+          <span>Target Variable:</span>
+          <span class="telemetry-val" id="telemetry-target">—</span>
+        </div>
+        <div class="telemetry-row">
+          <span>Computation Time:</span>
+          <span class="telemetry-val" id="telemetry-time">—</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Output / Worksheet Workspace -->
+    <main class="main-content">
+
+      <!-- TAB 1: WORKSHEET (The 10 Linear Algebra Steps) -->
+      <section class="tab-pane active" id="pane-worksheet">
+        
+        <!-- Top Scoreboard Hero -->
+        <div class="scoreboard-card">
+          <div class="scoreboard-header">
+            <h2 class="scoreboard-title">Linear Algebra Model Scoreboard</h2>
+            <span class="dataset-tag" id="summary-dataset-tag">Synthetic Housing Dataset</span>
+          </div>
+          
+          <div class="scoreboard-metrics-grid">
+            <div class="metric-box">
+              <span class="metric-label">Full Model Test RMSE</span>
+              <span class="metric-value accented" id="stat-full-rmse">—</span>
+              <span class="metric-sub" id="stat-full-features">— features</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Reduced (PCA) Test RMSE</span>
+              <span class="metric-value" id="stat-red-rmse">—</span>
+              <span class="metric-sub" id="stat-red-components">— components</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Baseline Test RMSE</span>
+              <span class="metric-value" id="stat-base-rmse">—</span>
+              <span class="metric-sub">Target mean prediction</span>
+            </div>
+            <div class="metric-box">
+              <span class="metric-label">Rank & Nullity</span>
+              <span class="metric-value" id="stat-rank-nullity">—</span>
+              <span class="metric-sub" id="stat-dropped-count">— redundant dropped</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Preprocessing Notes Log -->
+        <div class="notes-banner" id="notes-banner">
+          <strong>Data Preparation & Transformation Log:</strong>
+          <ul class="notes-list" id="notes-list">
+            <li>Awaiting pipeline execution...</li>
+          </ul>
+        </div>
+
+        <!-- Correctness Checker Ledger & Stamp -->
+        <div class="ledger-section">
+          <div class="ledger-header">
+            <h3 class="ledger-title">Linear Algebra Correctness Ledger</h3>
+            <span class="dataset-tag">Automated Verification Protocol</span>
+          </div>
+
+          <div class="ledger-table-wrap">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Mathematical Verification Check</th>
+                  <th>Theoretical Condition</th>
+                  <th>Max Absolute Residual</th>
+                  <th>Verdict</th>
+                </tr>
+              </thead>
+              <tbody id="ledger-body">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Rubber Stamp Verdict -->
+          <div class="stamp-container">
+            <div class="rubber-stamp verified" id="overall-stamp">
+              VERIFIED: ALL CHECKS PASSED
+            </div>
+          </div>
+        </div>
+
+        <!-- Archival Visualizations Grid -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title">1. Predicted vs Actual (Test Set)</div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-pred-actual"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">2. Scree Plot (Eigenvalues)</div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-scree"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">3. Cumulative Explained Variance</div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-cumvar"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10 Step-by-Step Textbook Sections -->
+        <div class="steps-container" id="steps-container">
+
+          <!-- STEP 1 -->
+          <article class="step-card" id="step-1">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 1</span>
+                <h3 class="step-title">Matrix Representation</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Representing observations as matrix $A \in \mathbb{R}^{n \times d}$ and target as vector $b \in \mathbb{R}^n$.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Linear algebra models system dynamics as $A x \approx b$; requires dense standardized coordinates.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step1-outcome">Constructed standardized training matrix $A$ and centered vector $b$.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Model Formulation: } \quad A x \approx b, \quad A_{i,j} = \frac{X_{i,j} - \mu_j}{\sigma_j}, \quad b_i = y_i - \bar{y}$$
+              </div>
+              <div class="matrix-container">
+                <div class="matrix-caption">
+                  <span>First Rows Preview of Standardized Matrix $A$</span>
+                  <span class="mono" id="step1-dims">Dimensions: —</span>
+                </div>
+                <div class="matrix-bracketed" id="step1-matrix-a">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- STEP 2 -->
+          <article class="step-card" id="step-2">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 2</span>
+                <h3 class="step-title">Matrix Simplification (RREF & LU Factorization)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Gaussian-Jordan elimination to RREF and LU factorization with partial row pivoting ($P A_{\text{blk}} = L U$).</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Exposes pivot positions, verifies linear equation solvability, and factors into triangular systems.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step2-outcome">Inspected leading $6 \times 6$ block; reconstructed $P L U = A_{\text{blk}}$ with zero residual error.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{LU Factorization with Partial Pivoting: } \quad P \cdot A_{\text{blk}} = L \cdot U \iff A_{\text{blk}} = P^T L U$$
+              </div>
+              <div class="matrix-container">
+                <div class="matrix-caption">
+                  <span>RREF of First Block</span>
+                  <span class="mono">Gauss-Jordan Form</span>
+                </div>
+                <div class="matrix-bracketed" id="step2-rref-matrix"></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- STEP 3 -->
+          <article class="step-card" id="step-3">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 3</span>
+                <h3 class="step-title">Structure of the Space (Rank & Nullity)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Rank-Nullity Theorem: $\text{rank}(A) + \text{nullity}(A) = d$.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Counts how many features carry genuinely distinct information versus linear redundancy.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step3-outcome">Determined column space dimension and redundancy degree.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Fundamental Subspaces Dimension: } \quad \dim(\mathcal{C}(A)) = \text{rank}(A), \quad \dim(\mathcal{N}(A)) = d - \text{rank}(A)$$
+              </div>
+              <div id="step3-stats-box"></div>
+            </div>
+          </article>
+
+          <!-- STEP 4 -->
+          <article class="step-card" id="step-4">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 4</span>
+                <h3 class="step-title">Remove Redundancy (Linear Independence & Basis Selection)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Basis extraction via column-pivoted QR (greedy Gram-Schmidt with maximum norm pivoting).</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Discards collinear columns to ensure the remaining basis matrix $B$ has full column rank.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step4-outcome">Selected independent columns; pruned redundant feature combinations.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Basis Matrix: } \quad B = A_{[:, \text{basis}]}, \quad \text{rank}(B) = \text{cols}(B) = r$$
+              </div>
+              <div id="step4-basis-display"></div>
+            </div>
+          </article>
+
+          <!-- STEP 5 -->
+          <article class="step-card" id="step-5">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 5</span>
+                <h3 class="step-title">Orthogonalization (Gram-Schmidt Orthonormal Basis Q)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Gram-Schmidt process constructing orthonormal vectors $q_j$ such that $q_i^T q_j = \delta_{ij}$.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Eliminates geometric skew and numerical collinearity, simplifying orthogonal projection.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step5-outcome">Formed matrix $Q \in \mathbb{R}^{n \times r}$; verified $Q^T Q = I_r$ to machine precision.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Gram-Schmidt: } \quad v_j = b_j - \sum_{i=1}^{j-1} (q_i^T b_j) q_i, \quad q_j = \frac{v_j}{\|v_j\|_2}, \quad Q^T Q = I_r$$
+              </div>
+              <div class="matrix-container">
+                <div class="matrix-caption">
+                  <span>First Rows Preview of Orthonormal Matrix $Q$</span>
+                  <span class="mono" id="step5-q-check">Check: $Q^T Q = I$</span>
+                </div>
+                <div class="matrix-bracketed" id="step5-matrix-q"></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- STEP 6 -->
+          <article class="step-card" id="step-6">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 6</span>
+                <h3 class="step-title">Orthogonal Projection & Residual Analysis</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Orthogonal projection of $b$ onto column space $\mathcal{C}(B)$: $\hat{b} = Q Q^T b$.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">When $b \notin \mathcal{C}(B)$, finds the unique closest point; the error is perpendicular to every column.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step6-outcome">Decomposed $b = \hat{b} + e$; confirmed $B^T e \approx 0$ and $\|b\|^2 = \|\hat{b}\|^2 + \|e\|^2$.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Orthogonal Decomposition: } \quad p = Q (Q^T b), \quad e = b - p, \quad B^T e = 0, \quad \|b\|_2^2 = \|p\|_2^2 + \|e\|_2^2$$
+              </div>
+              <div id="step6-norms-box"></div>
+            </div>
+          </article>
+
+          <!-- STEP 7 -->
+          <article class="step-card" id="step-7">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 7</span>
+                <h3 class="step-title">Least Squares Solution (QR vs Normal Equations)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Solving $R x = Q^T b$ vs $(B^T B) x = B^T b$ to find optimal regression coefficients.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">QR avoids squaring condition number $\kappa(B)$; both yield the same optimal parameter vector $x$.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step7-outcome">Fitted optimal weights; validated equality with normal equations solution.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Least Squares Estimator: } \quad x = (B^T B)^{-1} B^T b = R^{-1} Q^T b, \quad \text{where } B = Q R$$
+              </div>
+              <div class="weights-table-wrap">
+                <table class="weights-table">
+                  <thead>
+                    <tr>
+                      <th>Feature Name</th>
+                      <th class="num">Regression Weight ($x_j$)</th>
+                      <th class="num">Normal Eq Weight ($x_{\text{NE}}$)</th>
+                      <th class="num">Absolute Diff</th>
+                    </tr>
+                  </thead>
+                  <tbody id="weights-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </article>
+
+          <!-- STEP 8 -->
+          <article class="step-card" id="step-8">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 8</span>
+                <h3 class="step-title">Eigen-Decomposition (Covariance & Jacobi Algorithm)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Spectral decomposition of sample covariance $C = V \Lambda V^T$ via cyclic Jacobi rotations.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Discovers principal axes of maximum variance and uncovers latent feature correlations.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step8-outcome">Calculated eigenvalues and eigenvectors; confirmed $C v_i = \lambda_i v_i$ and $\sum \lambda_i = \text{tr}(C)$.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Spectral Theorem: } \quad C = \frac{1}{n-1} B^T B = V \Lambda V^T, \quad C v_i = \lambda_i v_i, \quad \sum_{i=1}^r \lambda_i = \text{tr}(C)$$
+              </div>
+              <div id="step8-eigen-summary"></div>
+            </div>
+          </article>
+
+          <!-- STEP 9 -->
+          <article class="step-card" id="step-9">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 9</span>
+                <h3 class="step-title">Diagonalization / PCA (Dimensionality Reduction)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Selecting $k$ leading eigenvectors $W = [v_1, \dots, v_k]$ to capture $\ge$ target variance.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Compresses the data matrix $Z = B W$, filtering out weak noise directions.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step9-outcome">Projected data into lower-dimensional orthogonal subspace.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{PCA Projection: } \quad Z = B \cdot W, \quad W \in \mathbb{R}^{r \times k}, \quad Z \in \mathbb{R}^{n \times k}$$
+              </div>
+              <div id="step9-pca-summary"></div>
+            </div>
+          </article>
+
+          <!-- STEP 10 -->
+          <article class="step-card" id="step-10">
+            <header class="step-header">
+              <div class="step-title-wrap">
+                <span class="step-num">Step 10</span>
+                <h3 class="step-title">Final Output (Full Model vs Reduced Model vs Baseline)</h3>
+              </div>
+              <span class="step-toggle-icon">▼</span>
+            </header>
+            <div class="step-body">
+              <div class="margin-note-box">
+                <div class="note-item">
+                  <span class="note-label">Concept</span>
+                  <p class="note-text">Fitting regression on compressed representation $Z$ and evaluating out-of-sample generalization.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Purpose</span>
+                  <p class="note-text">Assesses trade-off between dimensionality reduction and predictive fidelity on test data.</p>
+                </div>
+                <div class="note-item">
+                  <span class="note-label">Outcome</span>
+                  <p class="note-text" id="step10-outcome">Quantified RMSE delta across Full, PCA-reduced, and trivial baseline models.</p>
+                </div>
+              </div>
+              <div class="math-block">
+                $$\text{Reduced Model: } \quad x_Z = (Z^T Z)^{-1} Z^T b, \quad \hat{y}_{\text{test}} = Z_{\text{test}} x_Z + \bar{y}$$
+              </div>
+              <div id="step10-comparison-box"></div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: VIVA CHEAT SHEET -->
+      <section class="tab-pane" id="pane-viva">
+        <div class="viva-section">
+          <div class="scoreboard-header">
+            <h2 class="scoreboard-title">Viva Examination Defense Cheat Sheet</h2>
+            <span class="dataset-tag">Concept → Why Needed → Result on Data</span>
+          </div>
+
+          <div class="viva-table-wrap">
+            <table class="viva-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Stage</th>
+                  <th style="width: 220px;">Mathematical Concept</th>
+                  <th>Why We Needed It</th>
+                  <th>Result on Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="viva-stage-num">Stage 1</td>
+                  <td><strong>Matrix $A$ and Vector $b$</strong></td>
+                  <td>Linear algebra only works on numeric matrices; standardizes features so scale differences don't distort inner products.</td>
+                  <td>Constructed standardized matrix $A \in \mathbb{R}^{n \times d}$ and zero-mean vector $b$.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 2</td>
+                  <td><strong>RREF & LU Factorization</strong></td>
+                  <td>Exposes pivot structure and equations by systematic elimination; factors block into $P L U = A_{\text{blk}}$ without inversion.</td>
+                  <td>Revealed pivot structure; $P L U$ reconstructed the block with zero error.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 3</td>
+                  <td><strong>Rank & Nullity</strong></td>
+                  <td>Counts how many columns carry genuinely new information vs exact collinear linear combinations.</td>
+                  <td>Rank $r$, nullity $d - r$; identified degree of informational redundancy.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 4</td>
+                  <td><strong>Linear Independence & Basis</strong></td>
+                  <td>Prunes linearly dependent columns using column-pivoted QR to form full-column-rank basis matrix $B$.</td>
+                  <td>Preserved $r$ basis columns; discarded all collinear combinations.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 5</td>
+                  <td><strong>Gram-Schmidt (Q)</strong></td>
+                  <td>Transforms basis into mutually perpendicular unit vectors ($Q^T Q = I_r$), preventing numerical instability.</td>
+                  <td>Produced orthonormal matrix $Q$; verified $Q^T Q = I_r$ to machine precision.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 6</td>
+                  <td><strong>Orthogonal Projection</strong></td>
+                  <td>Since $b \notin \mathcal{C}(B)$, finds the closest point $\hat{b} \in \mathcal{C}(B)$; residual is strictly perpendicular to every column.</td>
+                  <td>Split $b = \hat{b} + e$; confirmed $B^T e = 0$ and $\|b\|^2 = \|\hat{b}\|^2 + \|e\|^2$.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 7</td>
+                  <td><strong>Least Squares via QR</strong></td>
+                  <td>Computes weights $x$ via $R x = Q^T b$, which is well-conditioned compared to inverting $B^T B$.</td>
+                  <td>Produced optimal weights matching normal equations; computed train & test RMSE.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 8</td>
+                  <td><strong>Eigen-Decomposition (Jacobi)</strong></td>
+                  <td>Finds principal directions of maximum variance for symmetric covariance matrix $C = V \Lambda V^T$.</td>
+                  <td>Computed eigenvalues $\lambda_i$; verified $C v_i = \lambda_i v_i$ and $\sum \lambda_i = \text{tr}(C)$.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 9</td>
+                  <td><strong>Diagonalization / PCA</strong></td>
+                  <td>Rotates data onto main variance directions and drops weak noise components.</td>
+                  <td>Compressed $r$ features down to $k$ orthogonal components keeping $\ge 90\%$ variance.</td>
+                </tr>
+                <tr>
+                  <td class="viva-stage-num">Stage 10</td>
+                  <td><strong>Reduced Model Comparison</strong></td>
+                  <td>Evaluates whether compressed components retain predictive power on unseen test data.</td>
+                  <td>Compared Full vs Reduced vs Baseline test RMSE; measured compression efficiency.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Key Limitations Callout -->
+          <div class="viva-limitations-card">
+            <h3 class="viva-limitations-title">Critical Limitations to State During Oral Viva</h3>
+            <ul style="padding-left: 1.25rem; font-size: 0.85rem; line-height: 1.5; color: var(--text-main);">
+              <li><strong>Linearity Assumption:</strong> The pipeline model is strictly linear ($A x \approx b$). It cannot capture nonlinear interactions without polynomial or kernel expansions.</li>
+              <li><strong>Numeric Target Requirement:</strong> Requires a continuous numeric target $b$; not suitable for multi-class classification without logistic/softmax extensions.</li>
+              <li><strong>Unsupervised Nature of PCA:</strong> PCA selects directions of maximum feature variance without looking at the target $b$. If the predictive signal lies along low-variance directions, PCA compression can harm test RMSE.</li>
+              <li><strong>Sensitivity to Outliers:</strong> Least squares minimizes squared Euclidean distance ($\ell_2$ norm), making weights and eigenvalues sensitive to extreme outliers.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: EXPORT RESULTS -->
+      <section class="tab-pane" id="pane-export">
+        <div class="export-card">
+          <div class="scoreboard-header">
+            <h2 class="scoreboard-title">Export Pipeline Computation Results</h2>
+            <div class="export-actions">
+              <button type="button" class="btn-secondary" id="btn-copy-json">
+                <span>📋</span> Copy JSON
+              </button>
+              <button type="button" class="btn-secondary" id="btn-download-json">
+                <span>💾</span> Download JSON
+              </button>
+            </div>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            Export complete mathematical artifacts: matrices, eigenvalues, weights, check verdicts, and out-of-sample metrics.
+          </p>
+          <pre class="json-preview-box" id="json-preview">Pipeline has not been executed yet. Click "Run Decomposition".</pre>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <span>Linear Algebra Automated Data Analysis Tool • Pure Client-Side Vanilla JS • Zero Build Step • Web Worker Threading</span>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="sample_datasets.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
