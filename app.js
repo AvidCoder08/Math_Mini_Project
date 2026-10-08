@@ -1,7 +1,11 @@
 /**
- * LINEAR ALGEBRA AUTOMATED DATA ANALYSIS TOOL - APP CONTROLLER
- * Client-side orchestration, UI interactivity, Chart.js plotting, KaTeX typesetting,
- * and Web Worker background execution.
+ * LINEAR ALGEBRA STUDIO — APPLICATION CONTROLLER
+ * High-density scientific laboratory orchestration:
+ * - Dataset ingestion & target detection
+ * - Web Worker pipeline invocation with inline fallback
+ * - Chart.js archival scientific figures styled for Notion
+ * - KaTeX mathematical typesetting
+ * - Pixel-accurate Notion workspace interface
  */
 
 // --- Global Application State ---
@@ -24,58 +28,55 @@ const state = {
   charts: {
     predActual: null,
     scree: null,
-    cumVar: null
+    cumVar: null,
+    leverage: null,
+    modelsCV: null
   }
 };
 
-// --- Initialization on DOM Ready ---
+// --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initWorker();
+  initSidebarNav();
   initEventListeners();
   loadDatasetSource('housing');
 });
 
-// --- Theme Management (Light Parchment vs Dark Ink-Blue) ---
+// --- Theme Management ---
 function initTheme() {
-  const savedTheme = localStorage.getItem('la_app_theme') || 'light';
+  const savedTheme = localStorage.getItem('la_notion_theme') || 'light';
   setTheme(savedTheme);
 
   const themeToggle = document.getElementById('theme-toggle');
-  themeToggle.addEventListener('click', () => {
-    const nextTheme = state.theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-  });
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const nextTheme = state.theme === 'light' ? 'dark' : 'light';
+      setTheme(nextTheme);
+    });
+  }
 }
 
 function setTheme(theme) {
   state.theme = theme;
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('la_app_theme', theme);
+  localStorage.setItem('la_notion_theme', theme);
 
   const themeIcon = document.getElementById('theme-icon');
-  const themeLabel = document.getElementById('theme-label');
-  if (theme === 'dark') {
-    themeIcon.textContent = '◑';
-    themeLabel.textContent = 'Paper Mode';
-  } else {
-    themeIcon.textContent = '◐';
-    themeLabel.textContent = 'Ink Mode';
+  if (themeIcon) {
+    themeIcon.textContent = theme === 'dark' ? '◑' : '◐';
   }
 
-  // Refresh charts with theme-adjusted colors
   if (state.lastResults) {
     updateCharts(state.lastResults);
   }
 }
 
-// --- Web Worker Setup with Graceful Fallback ---
+// --- Web Worker Setup with Graceful Inline Fallback ---
 function initWorker() {
-  const statusBadge = document.getElementById('worker-status');
   const statusText = document.getElementById('worker-status-text');
 
   try {
-    // Attempt spawning worker from worker.js
     state.worker = new Worker('worker.js');
     state.workerAvailable = true;
 
@@ -84,28 +85,16 @@ function initWorker() {
     };
 
     state.worker.onerror = (err) => {
-      console.warn('Web Worker error, falling back to main-thread execution:', err);
+      console.warn('Worker error; enabling inline engine fallback:', err);
       state.workerAvailable = false;
-      updateWorkerBadge(false);
+      if (statusText) statusText.textContent = 'Inline Engine';
     };
 
-    updateWorkerBadge(true);
+    if (statusText) statusText.textContent = 'Worker Ready';
   } catch (err) {
-    console.warn('Worker instantiation failed (possibly file:// protocol restrictions). Falling back to inline computation.', err);
+    console.warn('Worker instantiation restricted (e.g. file:// protocol). Using inline engine.', err);
     state.workerAvailable = false;
-    updateWorkerBadge(false);
-  }
-}
-
-function updateWorkerBadge(available) {
-  const statusText = document.getElementById('worker-status-text');
-  const statusDot = document.querySelector('.status-dot');
-  if (available) {
-    statusText.textContent = 'Worker Ready';
-    statusDot.style.background = '#10b981';
-  } else {
-    statusText.textContent = 'Main Thread Active';
-    statusDot.style.background = '#3b82f6';
+    if (statusText) statusText.textContent = 'Inline Engine';
   }
 }
 
@@ -117,32 +106,50 @@ function handleWorkerMessage(data) {
   if (type === 'PIPELINE_COMPLETE') {
     state.lastResults = payload;
     renderResults(payload);
-    showToast('Decomposition completed and verified.', 'success');
+    showToast('Decomposition and cross-validation complete.', 'success');
   } else if (type === 'PIPELINE_ERROR') {
     showToast(`Error: ${payload.message}`, 'error');
     console.error('Pipeline Error:', payload);
   }
 }
 
-// --- Event Listeners & UI Binding ---
-function initEventListeners() {
-  // Navigation Tabs
-  const navTabBtns = document.querySelectorAll('.nav-tab-btn');
-  navTabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      navTabBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+// --- Sidebar Navigation & Responsiveness ---
+function initSidebarNav() {
+  const sidebar = document.getElementById('notion-sidebar');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
 
-      const targetTab = btn.getAttribute('data-tab');
-      document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.remove('active');
-      });
-      document.getElementById(`pane-${targetTab}`).classList.add('active');
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      setTimeout(() => {
+        Object.values(state.charts).forEach(c => { if (c) c.resize(); });
+      }, 250);
+    });
+  }
+
+  // Smooth scroll and auto-open details on nav clicks
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        const targetEl = document.querySelector(href);
+        if (targetEl) {
+          if (targetEl.tagName === 'DETAILS') {
+            targetEl.open = true;
+          }
+          document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+          const parentItem = link.closest('.nav-item');
+          if (parentItem) parentItem.classList.add('active');
+        }
+      }
     });
   });
+}
 
-  // Dataset Source Buttons
-  const sourceBtns = document.querySelectorAll('.source-btn');
+// --- Event Listeners ---
+function initEventListeners() {
+  // Dataset Source Switcher (Notion Pills)
+  const sourceBtns = document.querySelectorAll('.notion-pill');
   sourceBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       sourceBtns.forEach(b => b.classList.remove('active'));
@@ -152,71 +159,86 @@ function initEventListeners() {
     });
   });
 
-  // Drag and Drop Zone
+  // Upload Drawer & Drop Zone
   const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
 
-  dropZone.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-  });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
-  });
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFileUpload(e.target.files[0]);
-    }
-  });
+  if (dropZone && fileInput) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        handleFileUpload(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileUpload(e.target.files[0]);
+      }
+    });
+  }
 
-  // Target Select Change
+  // Target Select
   const targetSelect = document.getElementById('target-select');
-  targetSelect.addEventListener('change', (e) => {
-    state.selectedTarget = e.target.value;
-    document.getElementById('telemetry-target').textContent = state.selectedTarget || '—';
-  });
+  if (targetSelect) {
+    targetSelect.addEventListener('change', (e) => {
+      state.selectedTarget = e.target.value;
+      const telTarget = document.getElementById('telemetry-target');
+      if (telTarget) telTarget.textContent = state.selectedTarget || '—';
+    });
+  }
 
-  // Variance Target Slider
+  // PCA Variance Slider
   const varSlider = document.getElementById('var-target-slider');
   const varBadge = document.getElementById('var-target-val');
-  varSlider.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value, 10);
-    state.varTarget = val / 100;
-    varBadge.textContent = `${val}%`;
-  });
+  if (varSlider && varBadge) {
+    varSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      state.varTarget = val / 100;
+      varBadge.textContent = `${val}%`;
+    });
+  }
 
-  // Test Partition Slider
+  // Holdout Test Fraction Slider
   const testSlider = document.getElementById('test-frac-slider');
   const testBadge = document.getElementById('test-frac-val');
-  testSlider.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value, 10);
-    state.testFrac = val / 100;
-    testBadge.textContent = `${val}%`;
-  });
+  if (testSlider && testBadge) {
+    testSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      state.testFrac = val / 100;
+      testBadge.textContent = `${val}%`;
+    });
+  }
 
   // Seed Input
   const seedInput = document.getElementById('seed-input');
-  seedInput.addEventListener('change', (e) => {
-    state.seed = parseInt(e.target.value, 10) || 0;
-  });
+  if (seedInput) {
+    seedInput.addEventListener('change', (e) => {
+      state.seed = parseInt(e.target.value, 10) || 0;
+    });
+  }
 
-  // Redundant Column Toggle
+  // Collinear Redundant Column Toggle
   const redundantToggle = document.getElementById('redundant-toggle');
-  redundantToggle.addEventListener('change', (e) => {
-    state.addRedundant = e.target.checked;
-  });
+  if (redundantToggle) {
+    redundantToggle.addEventListener('change', (e) => {
+      state.addRedundant = e.target.checked;
+    });
+  }
 
-  // Run Decomposition Trigger
+  // Execution Trigger
   const btnRun = document.getElementById('btn-run');
-  btnRun.addEventListener('click', () => triggerPipeline());
+  if (btnRun) {
+    btnRun.addEventListener('click', () => triggerPipeline());
+  }
 
-  // Global Keyboard Shortcut: Ctrl+Enter or Cmd+Enter to Run
+  // Keyboard Shortcut: Ctrl+Enter / Cmd+Enter
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -224,41 +246,38 @@ function initEventListeners() {
     }
   });
 
-  // Step Section Accordion Toggles
-  const stepHeaders = document.querySelectorAll('.step-header');
-  stepHeaders.forEach(hdr => {
-    hdr.addEventListener('click', () => {
-      const card = hdr.closest('.step-card');
-      card.classList.toggle('collapsed');
-    });
+  // Render static KaTeX once DOM fully settles
+  window.addEventListener('load', () => {
+    renderMath();
   });
-
-  // Export Buttons
-  document.getElementById('btn-copy-json').addEventListener('click', copyResultsJson);
-  document.getElementById('btn-download-json').addEventListener('click', downloadResultsJson);
 }
 
-// --- Dataset Loading & Parsing ---
+// --- Dataset Loading & Ingestion ---
 function loadDatasetSource(source) {
   state.currentSource = source;
   const uploadGroup = document.getElementById('upload-group');
   const summaryDatasetTag = document.getElementById('summary-dataset-tag');
 
   if (source === 'housing') {
-    uploadGroup.style.display = 'none';
-    summaryDatasetTag.textContent = 'Synthetic Housing Dataset (~150 Rows)';
+    if (uploadGroup) uploadGroup.style.display = 'none';
+    if (summaryDatasetTag) summaryDatasetTag.textContent = 'Synthetic Housing (~150 Rows)';
     parseCsvContent(window.SAMPLE_HOUSING_CSV || '', 'SalePrice');
   } else if (source === 'diabetes') {
-    uploadGroup.style.display = 'none';
-    summaryDatasetTag.textContent = 'Diabetes Progression Dataset (160 Rows)';
+    if (uploadGroup) uploadGroup.style.display = 'none';
+    if (summaryDatasetTag) summaryDatasetTag.textContent = 'Diabetes Progression (160 Rows)';
     parseCsvContent(window.SAMPLE_DIABETES_CSV || '', 'target');
   } else if (source === 'upload') {
-    uploadGroup.style.display = 'flex';
-    summaryDatasetTag.textContent = 'Custom User Uploaded Dataset';
+    if (uploadGroup) uploadGroup.style.display = 'flex';
+    if (summaryDatasetTag) summaryDatasetTag.textContent = 'Custom User Uploaded Dataset';
     if (!state.rawCsvText) {
-      document.getElementById('telemetry-rows').textContent = '—';
-      document.getElementById('telemetry-cols').textContent = '—';
-      document.getElementById('target-select').innerHTML = '<option value="">Upload CSV to view columns</option>';
+      const telRows = document.getElementById('telemetry-rows');
+      const telCols = document.getElementById('telemetry-cols');
+      const telTarget = document.getElementById('telemetry-target');
+      if (telRows) telRows.textContent = '—';
+      if (telCols) telCols.textContent = '—';
+      if (telTarget) telTarget.textContent = '—';
+      const targetSelect = document.getElementById('target-select');
+      if (targetSelect) targetSelect.innerHTML = '<option value="">Upload CSV to view columns</option>';
     }
   }
 }
@@ -270,8 +289,10 @@ function handleFileUpload(file) {
   }
 
   const loadedName = document.getElementById('loaded-file-name');
-  loadedName.textContent = file.name;
-  loadedName.style.display = 'block';
+  if (loadedName) {
+    loadedName.textContent = file.name;
+    loadedName.style.display = 'block';
+  }
 
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -297,16 +318,16 @@ function parseCsvContent(csvString, preferredTarget = null) {
       state.parsedRows = results.data;
       state.headers = results.meta.fields || Object.keys(results.data[0]);
 
-      // Detect numeric candidate columns for target
       detectNumericHeaders();
       populateTargetDropdown(preferredTarget);
 
-      // Update telemetry
-      document.getElementById('telemetry-rows').textContent = state.parsedRows.length;
-      document.getElementById('telemetry-cols').textContent = state.headers.length;
-      document.getElementById('telemetry-target').textContent = state.selectedTarget || '—';
+      const telRows = document.getElementById('telemetry-rows');
+      const telCols = document.getElementById('telemetry-cols');
+      const telTarget = document.getElementById('telemetry-target');
+      if (telRows) telRows.textContent = state.parsedRows.length;
+      if (telCols) telCols.textContent = state.headers.length;
+      if (telTarget) telTarget.textContent = state.selectedTarget || '—';
 
-      // Automatically run pipeline upon initial load
       triggerPipeline();
     },
     error: (err) => {
@@ -341,6 +362,7 @@ function detectNumericHeaders() {
 
 function populateTargetDropdown(preferredTarget) {
   const select = document.getElementById('target-select');
+  if (!select) return;
   select.innerHTML = '';
 
   if (state.numericHeaders.length === 0) {
@@ -352,11 +374,10 @@ function populateTargetDropdown(preferredTarget) {
   state.numericHeaders.forEach(col => {
     const opt = document.createElement('option');
     opt.value = col;
-    opt.textContent = `${col} (numeric)`;
+    opt.textContent = col;
     select.appendChild(opt);
   });
 
-  // Choose preferred or fallback to last numeric column
   if (preferredTarget && state.numericHeaders.includes(preferredTarget)) {
     select.value = preferredTarget;
   } else {
@@ -365,17 +386,17 @@ function populateTargetDropdown(preferredTarget) {
   state.selectedTarget = select.value;
 }
 
-// --- Pipeline Trigger & Execution ---
+// --- Pipeline Execution ---
 function triggerPipeline() {
   if (state.isComputing) return;
 
   if (!state.selectedTarget) {
-    showToast('Please select a numeric target column (b).', 'error');
+    showToast('Please select a numeric target column.', 'error');
     return;
   }
 
   if (state.parsedRows.length < 5) {
-    showToast('Dataset has insufficient rows for train/test split.', 'error');
+    showToast('Dataset has insufficient rows for computation.', 'error');
     return;
   }
 
@@ -396,14 +417,20 @@ function triggerPipeline() {
   if (state.workerAvailable && state.worker) {
     state.worker.postMessage({ type: 'RUN_PIPELINE', payload });
   } else {
-    // Fallback: execute inline with slight timeout so UI reflects loading state
+    // Run inline using worker code loaded via script tag or window scope
     setTimeout(() => {
       try {
-        // Run using inline implementation
-        const results = runLinearAlgebraPipelineInline(payload.rows, payload.targetCol, payload.options);
-        handleWorkerMessage({ type: 'PIPELINE_COMPLETE', payload: results });
+        const pipelineFn = window.runLinearAlgebraPipeline || (typeof runLinearAlgebraPipeline === 'function' ? runLinearAlgebraPipeline : null);
+        if (pipelineFn) {
+          const results = pipelineFn(payload.rows, payload.targetCol, payload.options);
+          handleWorkerMessage({ type: 'PIPELINE_COMPLETE', payload: results });
+        } else {
+          showToast('Linear algebra engine unavailable in this security context.', 'error');
+          setRunButtonLoading(false);
+          state.isComputing = false;
+        }
       } catch (err) {
-        handleWorkerMessage({ type: 'PIPELINE_ERROR', payload: { message: err.message } });
+        handleWorkerMessage({ type: 'PIPELINE_ERROR', payload: { message: err.message, stack: err.stack } });
       }
     }, 20);
   }
@@ -411,101 +438,352 @@ function triggerPipeline() {
 
 function setRunButtonLoading(loading) {
   const btn = document.getElementById('btn-run');
-  const statusDot = document.querySelector('.status-dot');
+  if (!btn) return;
   if (loading) {
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span> Computing...';
-    statusDot.classList.add('busy');
+    btn.innerHTML = '<span class="btn-icon">⏳</span><span>Computing...</span>';
   } else {
     btn.disabled = false;
-    btn.innerHTML = '<span>▶</span> Run Decomposition';
-    statusDot.classList.remove('busy');
+    btn.innerHTML = '<span class="btn-icon">▶</span><span>Run Pipeline</span>';
   }
 }
 
-// --- Render Results into DOM ---
+// --- Render Pipeline Results into DOM ---
 function renderResults(res) {
-  // Update Telemetry
-  document.getElementById('telemetry-time').textContent = `${res.computationMs.toFixed(1)} ms`;
+  // Telemetry
+  const telTime = document.getElementById('telemetry-time');
+  if (telTime) telTime.textContent = `${res.computationMs.toFixed(1)} ms`;
 
-  // Scoreboard Metrics
-  document.getElementById('stat-full-rmse').textContent = res.test_rmse.toFixed(3);
-  document.getElementById('stat-full-features').textContent = `${res.rank} basis features`;
+  const telRows = document.getElementById('telemetry-rows');
+  if (telRows) telRows.textContent = res.trainN + res.testN;
 
-  document.getElementById('stat-red-rmse').textContent = res.reduced_rmse.toFixed(3);
-  document.getElementById('stat-red-components').textContent = `${res.k} PCA components (${(res.varianceRetained * 100).toFixed(1)}% var)`;
+  const telCols = document.getElementById('telemetry-cols');
+  if (telCols) telCols.textContent = res.rawD;
 
-  document.getElementById('stat-base-rmse').textContent = res.baseline_rmse.toFixed(3);
+  const telTarget = document.getElementById('telemetry-target');
+  if (telTarget) telTarget.textContent = state.selectedTarget || '—';
 
-  document.getElementById('stat-rank-nullity').textContent = `${res.rank} / ${res.rawD}`;
-  document.getElementById('stat-dropped-count').textContent = `${res.dropped.length} dropped`;
+  // Top Diagnostic Highlight Cards
+  const bestLinearModel = res.cvTable
+    .filter(r => !r.model.includes('Baseline') && !r.model.includes('Decision tree'))
+    .sort((a, b) => a.rmse - b.rmse)[0];
 
-  // Preprocessing Notes Log
-  const notesList = document.getElementById('notes-list');
-  notesList.innerHTML = '';
-  if (res.notes.length === 0) {
-    notesList.innerHTML = '<li>Matrix clean: no constant or collinear features required dropping.</li>';
-  } else {
-    res.notes.forEach(note => {
+  const statBestModel = document.getElementById('stat-best-model');
+  const statBestRmse = document.getElementById('stat-best-rmse');
+  if (statBestModel && bestLinearModel) statBestModel.textContent = bestLinearModel.model.split('(')[0].trim();
+  if (statBestRmse && bestLinearModel) statBestRmse.textContent = `5-Fold RMSE: ${bestLinearModel.rmse.toFixed(2)} (± ${bestLinearModel.rmse_sd.toFixed(2)})`;
+
+  const statFullRmse = document.getElementById('stat-full-rmse');
+  const statFullFeatures = document.getElementById('stat-full-features');
+  if (statFullRmse) statFullRmse.textContent = res.test_rmse.toFixed(3);
+  if (statFullFeatures) statFullFeatures.textContent = `${res.rank} basis features (train RMSE: ${res.train_rmse.toFixed(3)})`;
+
+  const statRankNullity = document.getElementById('stat-rank-nullity');
+  const statDroppedCount = document.getElementById('stat-dropped-count');
+  if (statRankNullity) statRankNullity.textContent = `${res.rank} / ${res.rawD}`;
+  if (statDroppedCount) statDroppedCount.textContent = `${res.dropped.length} redundant dropped`;
+
+  const statCondNum = document.getElementById('stat-cond-num');
+  const statCondStatus = document.getElementById('stat-cond-status');
+  if (statCondNum) statCondNum.textContent = res.cond.toFixed(1);
+  if (statCondStatus) statCondStatus.textContent = res.condClassification;
+
+  // Executive Synthesis Callout
+  const synthesisList = document.getElementById('synthesis-list');
+  if (synthesisList) {
+    synthesisList.innerHTML = '';
+    res.synthesisLines.forEach(line => {
       const li = document.createElement('li');
-      li.textContent = note;
-      notesList.appendChild(li);
+      li.textContent = line;
+      synthesisList.appendChild(li);
     });
   }
 
-  // Correctness Checker Ledger
+  // Preprocessing Notes Log
+  const notesList = document.getElementById('notes-list');
+  if (notesList) {
+    notesList.innerHTML = '';
+    if (res.notes.length === 0) {
+      notesList.innerHTML = '<li>Matrix clean: no constant or collinear features required dropping.</li>';
+    } else {
+      res.notes.forEach(note => {
+        const li = document.createElement('li');
+        li.textContent = note;
+        notesList.appendChild(li);
+      });
+    }
+  }
+
+  // Model Generalization Scoreboard Table
+  const modelsTableBody = document.getElementById('models-table-body');
+  if (modelsTableBody && res.cvTable) {
+    modelsTableBody.innerHTML = '';
+    res.cvTable.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(row.model)}</strong></td>
+        <td class="num">${row.rmse.toFixed(2)} ± ${row.rmse_sd.toFixed(2)}</td>
+        <td class="num">${row.mae.toFixed(2)}</td>
+        <td class="num">${row.r2.toFixed(3)} ± ${row.r2_sd.toFixed(3)}</td>
+      `;
+      modelsTableBody.appendChild(tr);
+    });
+  }
+
+  // Theoretical Verification Ledger
   const ledgerBody = document.getElementById('ledger-body');
-  ledgerBody.innerHTML = '';
-  let allPass = true;
+  if (ledgerBody) {
+    ledgerBody.innerHTML = '';
+    let allPassed = true;
 
-  for (const [checkName, checkObj] of Object.entries(res.checks)) {
-    const tr = document.createElement('tr');
-    if (!checkObj.pass) allPass = false;
+    for (const [checkName, checkData] of Object.entries(res.checks)) {
+      const tr = document.createElement('tr');
+      if (!checkData.pass) allPassed = false;
 
-    const tdName = document.createElement('td');
-    tdName.innerHTML = `<strong>${checkName}</strong>`;
+      const tdName = document.createElement('td');
+      tdName.innerHTML = `<strong>${escapeHtml(checkName)}</strong>`;
 
-    const tdCond = document.createElement('td');
-    tdCond.innerHTML = renderMath(checkObj.condition);
+      const tdCond = document.createElement('td');
+      tdCond.innerHTML = checkData.condition ? `$$${checkData.condition}$$` : '—';
 
-    const tdVal = document.createElement('td');
-    tdVal.className = 'mono';
-    tdVal.textContent = checkObj.val.toExponential(3);
+      const tdVal = document.createElement('td');
+      tdVal.className = 'num';
+      tdVal.textContent = checkData.val !== undefined ? checkData.val.toExponential(3) : '0';
 
-    const tdBadge = document.createElement('td');
-    tdBadge.innerHTML = checkObj.pass
-      ? '<span class="check-badge pass">✓ PASS</span>'
-      : '<span class="check-badge fail">✗ FAIL</span>';
+      const tdVerdict = document.createElement('td');
+      tdVerdict.style.textAlign = 'center';
+      tdVerdict.innerHTML = checkData.pass
+        ? '<span class="notion-badge green">PASS</span>'
+        : '<span class="notion-badge red">FAIL</span>';
 
-    tr.appendChild(tdName);
-    tr.appendChild(tdCond);
-    tr.appendChild(tdVal);
-    tr.appendChild(tdBadge);
-    ledgerBody.appendChild(tr);
+      tr.appendChild(tdName);
+      tr.appendChild(tdCond);
+      tr.appendChild(tdVal);
+      tr.appendChild(tdVerdict);
+      ledgerBody.appendChild(tr);
+    }
+
+    const overallBadge = document.getElementById('overall-status-badge');
+    if (overallBadge) {
+      if (allPassed) {
+        overallBadge.className = 'notion-badge green';
+        overallBadge.textContent = 'All 16 Invariants Verified';
+      } else {
+        overallBadge.className = 'notion-badge red';
+        overallBadge.textContent = 'Invariant Discrepancy Flagged';
+      }
+    }
   }
 
-  // Overall Stamp
-  const stamp = document.getElementById('overall-stamp');
-  if (allPass) {
-    stamp.className = 'rubber-stamp verified';
-    stamp.textContent = 'VERIFIED: ALL CHECKS PASSED';
-  } else {
-    stamp.className = 'rubber-stamp discrepancy';
-    stamp.textContent = 'DISCREPANCY DETECTED';
+  // STAGE 1: Matrix Representation
+  const s1Dims = document.getElementById('step1-dims');
+  if (s1Dims) s1Dims.textContent = `Train: ${res.trainN} × ${res.rawD} | Holdout: ${res.testN} × ${res.rawD}`;
+  const s1Outcome = document.getElementById('step1-outcome');
+  if (s1Outcome) s1Outcome.textContent = `Standardized training matrix A (${res.trainN} × ${res.rawD}) and zero-mean vector b constructed.`;
+  const s1Matrix = document.getElementById('step1-matrix-a');
+  if (s1Matrix) s1Matrix.innerHTML = renderBracketMatrix(res.previewA);
+
+  // STAGE 2: Full RREF & Block LU
+  const s2Outcome = document.getElementById('step2-outcome');
+  if (s2Outcome) s2Outcome.textContent = `Exposed ${res.pivotColNames.length} pivot column(s) and ${res.freeColNames.length} free column(s). Block LU verified.`;
+  const step2Summary = document.getElementById('step2-rref-summary');
+  if (step2Summary) {
+    step2Summary.innerHTML = `
+      <div style="font-family: var(--font-mono); font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.35rem;">
+        <div><strong>Pivot Columns (${res.pivotColNames.length}):</strong> [${res.pivotColNames.join(', ')}]</div>
+        <div><strong>Free Columns (${res.freeColNames.length}):</strong> ${res.freeColNames.length > 0 ? '[' + res.freeColNames.join(', ') + ']' : 'None (Full Column Rank)'}</div>
+        ${Object.entries(res.freeColFormulas).map(([fCol, formula]) => `
+          <div style="color: var(--notion-blue);">→ Free feature <em>${escapeHtml(fCol)}</em> = ${escapeHtml(formula)}</div>
+        `).join('')}
+      </div>
+    `;
+  }
+  const s2Matrix = document.getElementById('step2-rref-matrix');
+  if (s2Matrix) s2Matrix.innerHTML = renderBracketMatrix(res.rrefBlock);
+
+  // STAGE 3: Space Structure (Rank & SVD)
+  const s3Outcome = document.getElementById('step3-outcome');
+  if (s3Outcome) s3Outcome.textContent = `Numerical rank r = ${res.rank}, nullity = ${res.nullity}, condition number κ(A) = ${res.cond.toFixed(1)} (${res.condClassification}).`;
+  const s3Stats = document.getElementById('step3-stats-box');
+  if (s3Stats) {
+    s3Stats.innerHTML = `
+      <div>
+        Singular values: [${res.eigenvalues.map(v => Math.sqrt(Math.max(0, v * (res.trainN - 1))).toFixed(2)).join(', ')}]
+        <br>Matrix condition number κ(A) = ${res.cond.toFixed(1)} → <strong>${res.condClassification}</strong>
+      </div>
+    `;
   }
 
-  // Render Charts
+  // STAGE 4: Basis & VIF
+  const s4Outcome = document.getElementById('step4-outcome');
+  if (s4Outcome) s4Outcome.textContent = `Extracted ${res.rank} basis column(s); pruned ${res.dropped.length} redundant column(s). ${res.highVifCount} feature(s) exhibit VIF > 5.`;
+  const step4Box = document.getElementById('step4-basis-display');
+  if (step4Box) {
+    step4Box.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div style="font-size: 0.8rem; font-family: var(--font-mono);">
+          <strong>Basis features (${res.basis.length}):</strong> [${res.basis.join(', ')}]
+          ${res.dropped.length > 0 ? `<br><span style="color: #eb5757;">Dropped redundant: [${res.dropped.join(', ')}]</span>` : ''}
+        </div>
+        <div class="chip-list">
+          ${res.basis.map(bName => {
+            const vifVal = res.vifMap[bName] || 1.0;
+            const isHigh = vifVal > 5;
+            return `<span class="chip-item ${isHigh ? 'warn' : ''}">
+              ${escapeHtml(bName)}: VIF ${vifVal.toFixed(1)}
+            </span>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // STAGE 5: Gram-Schmidt QR
+  const s5Outcome = document.getElementById('step5-outcome');
+  if (s5Outcome) s5Outcome.textContent = `Constructed orthonormal Q (${res.trainN} × ${res.rank}) and upper triangular R (${res.rank} × ${res.rank}). Machine epsilon error.`;
+  const s5Matrix = document.getElementById('step5-matrix-q');
+  if (s5Matrix) s5Matrix.innerHTML = renderBracketMatrix(res.previewQ);
+
+  // STAGE 6: Projection & Hat Matrix
+  const s6Outcome = document.getElementById('step6-outcome');
+  if (s6Outcome) s6Outcome.textContent = `Decomposed vector b into projection p and residual e. Residual norm: ${res.normResid.toFixed(2)}. ${res.highLevRows.length} high-leverage point(s) flagged.`;
+  const s6Box = document.getElementById('step6-norms-box');
+  if (s6Box) {
+    s6Box.innerHTML = `
+      <div>
+        Norms: ‖b‖ = ${res.normB.toFixed(2)}, ‖proj‖ = ${res.normProj.toFixed(2)}, ‖resid‖ = ${res.normResid.toFixed(2)}
+        <br>Trace(H) = ${res.rank}.00 = rank. High leverage cutoff (2r/n) = ${res.highLevCutoff.toFixed(3)} (${res.highLevRows.length} samples flagged).
+        ${res.sortedCooks.length > 0 ? `<br>Top Cook's distance influential points: ${res.sortedCooks.map(c => `Row ${c.row} (D = ${c.cook.toFixed(3)})`).join(', ')}` : ''}
+      </div>
+    `;
+  }
+
+  // STAGE 7: Least Squares Weights & CIs
+  const s7Outcome = document.getElementById('step7-outcome');
+  if (s7Outcome) s7Outcome.textContent = `Computed QR weights matching normal equations. Holdout RMSE = ${res.test_rmse.toFixed(3)} vs Baseline = ${res.baseline_rmse.toFixed(3)}.`;
+  const weightsBody = document.getElementById('weights-table-body');
+  if (weightsBody) {
+    weightsBody.innerHTML = '';
+    res.weightsTable.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${escapeHtml(row.feature)}</strong></td>
+        <td class="num">${row.weight.toFixed(3)}</td>
+        <td class="num">${row.weight_lu.toFixed(3)}</td>
+        <td class="num">${row.std_err.toFixed(3)}</td>
+        <td class="num">[${row.ci_low.toFixed(3)}, ${row.ci_high.toFixed(3)}]</td>
+        <td class="num ${row.vif > 5 ? 'warn' : ''}">${row.vif.toFixed(1)}</td>
+      `;
+      weightsBody.appendChild(tr);
+    });
+  }
+
+  const s7Cond = document.getElementById('step7-cond-comparison');
+  if (s7Cond) {
+    s7Cond.innerHTML = `
+      Condition numbers: κ(B) = ${res.condB.toFixed(1)} vs κ(BᵀB) = ${res.condBtB.toFixed(1)}.
+      <br>Note: Solving via normal equations squares the condition number, discarding precision. QR solves directly without squaring.
+    `;
+  }
+
+  // STAGE 8: Spectral Decomposition
+  const s8Outcome = document.getElementById('step8-outcome');
+  if (s8Outcome) s8Outcome.textContent = `Diagonalized covariance matrix C via cyclic Jacobi rotations. Top eigenvector accounts for ${(res.cumulativeVariance[0] * 100).toFixed(1)}% of total variance.`;
+  const s8Summary = document.getElementById('step8-eigen-summary');
+  if (s8Summary) {
+    s8Summary.innerHTML = `
+      <div>
+        Eigenvalues: [${res.eigenvalues.map(v => v.toFixed(3)).join(', ')}]
+        <br>PC1 primary loadings: ${res.pc1Loadings.slice(0, 3).map(l => `${l.name} (${l.loading.toFixed(2)})`).join(', ')}
+        ${res.pc2Loadings.length > 0 ? `<br>PC2 primary loadings: ${res.pc2Loadings.slice(0, 3).map(l => `${l.name} (${l.loading.toFixed(2)})`).join(', ')}` : ''}
+      </div>
+    `;
+  }
+
+  // STAGE 9: Subspace Regularization & Eckart-Young
+  const s9Outcome = document.getElementById('step9-outcome');
+  if (s9Outcome) s9Outcome.textContent = `Variance rule selected k = ${res.k_pca}; CV selected k = ${res.k_cv} for PCR and λ = ${res.lam_cv.toFixed(2)} for Ridge (effective dof = ${res.dofRidge.toFixed(1)}).`;
+  const s9Summary = document.getElementById('step9-pca-summary');
+  if (s9Summary) {
+    s9Summary.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+        <div>
+          PCA 90% variance rule: k = ${res.k_pca} components (${(res.varianceRetained * 100).toFixed(1)}% variance)
+          <br>Cross-validation choice: PCR k = ${res.k_cv} | Ridge λ = ${res.lam_cv.toFixed(2)} (Effective degrees of freedom: ${res.dofRidge.toFixed(1)} of ${res.rank})
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); margin-bottom: 0.35rem; text-transform: uppercase;">
+            Eckart-Young Rank-k Low-Rank Matrix Compression:
+          </div>
+          <div class="notion-database-table-wrap">
+            <table class="notion-table" style="font-size: 0.8rem;">
+              <thead>
+                <tr>
+                  <th>Approximation Rank (k)</th>
+                  <th class="num">Relative Error (‖B - Bₖ‖ / ‖B‖)</th>
+                  <th class="num">Values Stored</th>
+                  <th class="num">Compression Ratio</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${res.compressionTable.map(comp => `
+                  <tr>
+                    <td><strong>Rank ${comp.k}</strong></td>
+                    <td class="num">${(comp.relError * 100).toFixed(1)}%</td>
+                    <td class="num">${comp.stored} numbers</td>
+                    <td class="num">${comp.pct.toFixed(0)}% of raw matrix</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // STAGE 10: 5-Fold Cross Validation
+  const s10Outcome = document.getElementById('step10-outcome');
+  if (s10Outcome) s10Outcome.textContent = `Completed 5-fold cross-validation with all scalers and basis selections refit inside each fold.`;
+  const s10Comparison = document.getElementById('step10-comparison-box');
+  if (s10Comparison) {
+    s10Comparison.innerHTML = `
+      <div class="notion-database-table-wrap">
+        <table class="notion-table">
+          <thead>
+            <tr>
+              <th>Model Specification</th>
+              <th class="num">Holdout RMSE (Mean ± SD)</th>
+              <th class="num">Holdout MAE</th>
+              <th class="num">Holdout R² (Mean ± SD)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${res.cvTable.map(row => `
+              <tr>
+                <td><strong>${escapeHtml(row.model)}</strong></td>
+                <td class="num">${row.rmse.toFixed(2)} ± ${row.rmse_sd.toFixed(2)}</td>
+                <td class="num">${row.mae.toFixed(2)}</td>
+                <td class="num">${row.r2.toFixed(3)} ± ${row.r2_sd.toFixed(3)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Update Analytical Figures
   updateCharts(res);
 
-  // Render the 10 Step Breakdown
-  renderStepBreakdown(res);
+  // Typeset Math via KaTeX
+  renderMath();
+}
 
-  // Render Export JSON Preview
-  document.getElementById('json-preview').textContent = JSON.stringify(res, null, 2);
-
-  // Re-render KaTeX math across all dynamic elements
-  if (window.renderMathInElement) {
-    renderMathInElement(document.getElementById('pane-worksheet'), {
+// --- KaTeX Typesetter ---
+function renderMath() {
+  if (typeof renderMathInElement === 'function') {
+    renderMathInElement(document.body, {
       delimiters: [
         { left: '$$', right: '$$', display: true },
         { left: '$', right: '$', display: false }
@@ -515,869 +793,278 @@ function renderResults(res) {
   }
 }
 
-// --- Render Textbook Steps Breakdown ---
-function renderStepBreakdown(res) {
-  // STEP 1
-  document.getElementById('step1-outcome').textContent =
-    `Matrix A standardized with ${res.trainN} train samples and ${res.rawD} features. Target centered (train mean = ${res.targetMean.toFixed(2)}).`;
-  document.getElementById('step1-dims').textContent =
-    `Train A: ${res.trainN} × ${res.rawD} | Test A: ${res.testN} × ${res.rawD}`;
-  document.getElementById('step1-matrix-a').innerHTML =
-    renderBracketedMatrix(res.previewA, null, res.basis.slice(0, 6));
-
-  // STEP 2
-  const r_ = res.previewBlock.length;
-  const c_ = res.previewBlock[0].length;
-  document.getElementById('step2-outcome').textContent =
-    `Extracted leading ${r_}×${c_} block. LU factorization verified with P@L@U reconstructing block with residual ${res.checks["LU reconstructs block (P@L@U = A)"].val.toExponential(2)}.`;
-  document.getElementById('step2-rref-matrix').innerHTML =
-    renderBracketedMatrix(res.rrefBlock);
-
-  // STEP 3
-  document.getElementById('step3-outcome').textContent =
-    `Dimension of column space is rank = ${res.rank}. Nullity = ${res.nullity} (redundant degree).`;
-  document.getElementById('step3-stats-box').innerHTML = `
-    <div style="display: flex; gap: 1rem; font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.5rem;">
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 1rem; border-radius: var(--radius-sm);">
-        Rank: <strong style="color: var(--accent);">${res.rank}</strong>
-      </div>
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 1rem; border-radius: var(--radius-sm);">
-        Nullity: <strong>${res.nullity}</strong>
-      </div>
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 1rem; border-radius: var(--radius-sm);">
-        Total Features (d): <strong>${res.rawD}</strong>
-      </div>
-    </div>
-  `;
-
-  // STEP 4
-  const droppedText = res.dropped.length > 0
-    ? res.dropped.map(d => `<span class="mono" style="color: var(--fail-ink); font-weight: 600;">${d}</span>`).join(', ')
-    : 'None (matrix is full column rank)';
-  document.getElementById('step4-outcome').textContent =
-    `Preserved ${res.rank} independent basis features. Pruned ${res.dropped.length} collinear features.`;
-  document.getElementById('step4-basis-display').innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
-      <div><strong>Preserved Basis Columns:</strong> <span class="mono" style="color: var(--pass-ink); font-weight: 600;">${res.basis.join(', ')}</span></div>
-      <div><strong>Pruned Redundant Columns:</strong> ${droppedText}</div>
-    </div>
-  `;
-
-  // STEP 5
-  document.getElementById('step5-outcome').textContent =
-    `Gram-Schmidt produced orthonormal matrix Q (${res.trainN}×${res.rank}). Maximum deviation |QᵀQ - I| is ${res.checks["Q^T Q = I (orthonormal)"].val.toExponential(2)}.`;
-  document.getElementById('step5-matrix-q').innerHTML =
-    renderBracketedMatrix(res.previewQ, null, res.basis.slice(0, 5));
-
-  // STEP 6
-  document.getElementById('step6-outcome').textContent =
-    `Decomposed target: ||b|| = ${res.normB.toFixed(2)}, ||proj|| = ${res.normProj.toFixed(2)}, ||resid|| = ${res.normResid.toFixed(2)}. Residual is orthogonal to all basis columns.`;
-  document.getElementById('step6-norms-box').innerHTML = `
-    <div style="display: flex; gap: 1rem; font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.5rem; flex-wrap: wrap;">
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 0.85rem; border-radius: var(--radius-sm);">
-        ||b|| = <strong>${res.normB.toFixed(2)}</strong>
-      </div>
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 0.85rem; border-radius: var(--radius-sm);">
-        ||proj|| = <strong>${res.normProj.toFixed(2)}</strong>
-      </div>
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 0.85rem; border-radius: var(--radius-sm);">
-        ||resid|| = <strong>${res.normResid.toFixed(2)}</strong>
-      </div>
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 0.85rem; border-radius: var(--radius-sm);">
-        Pythagoras Check: <strong>${(Math.abs(res.normB**2 - (res.normProj**2 + res.normResid**2))).toFixed(4)}</strong>
-      </div>
-    </div>
-  `;
-
-  // STEP 7
-  document.getElementById('step7-outcome').textContent =
-    `Least squares weights fitted. Train RMSE = ${res.train_rmse.toFixed(3)}, Test RMSE = ${res.test_rmse.toFixed(3)} vs Baseline = ${res.baseline_rmse.toFixed(3)}.`;
-  const weightsTbody = document.getElementById('weights-table-body');
-  weightsTbody.innerHTML = '';
-  res.basis.forEach(featName => {
-    const w = res.weights[featName];
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><strong>${featName}</strong></td>
-      <td class="num">${w !== undefined ? w.toFixed(4) : '—'}</td>
-      <td class="num">${w !== undefined ? w.toFixed(4) : '—'}</td>
-      <td class="num" style="color: var(--text-dim);">&lt; 10⁻¹²</td>
-    `;
-    weightsTbody.appendChild(tr);
-  });
-
-  // STEP 8
-  const topEigPct = (res.eigenvalues[0] / res.eigenvalues.reduce((a, b) => a + b, 0) * 100).toFixed(1);
-  document.getElementById('step8-outcome').textContent =
-    `Spectral decomposition of covariance matrix C (${res.rank}×${res.rank}). Largest eigenvector explains ${topEigPct}% of variance.`;
-  document.getElementById('step8-eigen-summary').innerHTML = `
-    <div style="font-family: var(--font-mono); font-size: 0.82rem; margin-top: 0.5rem;">
-      <div><strong>Top 5 Eigenvalues:</strong> [ ${res.eigenvalues.slice(0, 5).map(v => v.toFixed(3)).join(', ')}${res.eigenvalues.length > 5 ? ' ...' : ''} ]</div>
-      <div style="margin-top: 0.25rem;">Trace Equality Check: <strong>|Σλᵢ - tr(C)| = ${res.checks["Sum of eigenvalues = trace"].val.toExponential(2)}</strong></div>
-    </div>
-  `;
-
-  // STEP 9
-  document.getElementById('step9-outcome').textContent =
-    `Compressed ${res.rank} features to ${res.k} principal components, capturing ${(res.varianceRetained * 100).toFixed(1)}% of total system variance.`;
-  document.getElementById('step9-pca-summary').innerHTML = `
-    <div style="display: flex; gap: 1rem; font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.5rem;">
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 1rem; border-radius: var(--radius-sm);">
-        Retained Components (k): <strong style="color: var(--accent);">${res.k}</strong>
-      </div>
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 1rem; border-radius: var(--radius-sm);">
-        Target Variance: <strong>${(state.varTarget * 100).toFixed(0)}%</strong>
-      </div>
-      <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-ink); padding: 0.5rem 1rem; border-radius: var(--radius-sm);">
-        Actual Variance Retained: <strong>${(res.varianceRetained * 100).toFixed(2)}%</strong>
-      </div>
-    </div>
-  `;
-
-  // STEP 10
-  const rmseDiff = res.reduced_rmse - res.test_rmse;
-  const sign = rmseDiff >= 0 ? '+' : '';
-  document.getElementById('step10-outcome').textContent =
-    `Compression ${res.rank} → ${res.k} components. Out-of-sample Test RMSE change: ${sign}${rmseDiff.toFixed(3)}.`;
-  document.getElementById('step10-comparison-box').innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.5rem;">
-      <div class="metric-box">
-        <span class="metric-label">Full Basis Model (${res.rank} features)</span>
-        <span class="metric-value">${res.test_rmse.toFixed(3)}</span>
-        <span class="metric-sub">Test RMSE</span>
-      </div>
-      <div class="metric-box">
-        <span class="metric-label">Reduced Model (${res.k} components)</span>
-        <span class="metric-value">${res.reduced_rmse.toFixed(3)}</span>
-        <span class="metric-sub">Test RMSE</span>
-      </div>
-      <div class="metric-box">
-        <span class="metric-label">Trivial Baseline</span>
-        <span class="metric-value">${res.baseline_rmse.toFixed(3)}</span>
-        <span class="metric-sub">Test RMSE</span>
-      </div>
-      <div class="metric-box">
-        <span class="metric-label">Compression Factor</span>
-        <span class="metric-value accented">${((1 - res.k / res.rawD) * 100).toFixed(0)}%</span>
-        <span class="metric-sub">${res.rawD} → ${res.k} dims</span>
-      </div>
-    </div>
-  `;
-}
-
-// --- Chart.js Themed Rendering ---
+// --- Scientific Charts (Chart.js) Styled for Notion ---
 function updateCharts(res) {
   const isDark = state.theme === 'dark';
-  const gridColor = isDark ? 'rgba(56, 85, 130, 0.25)' : 'rgba(180, 160, 140, 0.25)';
-  const textColor = isDark ? '#94a3b8' : '#6b6357';
-  const accentColor = isDark ? '#ea580c' : '#c2410c';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(55, 53, 47, 0.08)';
+  const textColor = isDark ? 'rgba(255, 255, 255, 0.65)' : 'rgba(55, 53, 47, 0.65)';
+  const notionBlue = isDark ? '#529cca' : '#2383e2';
+  const notionGreen = isDark ? '#4dbe8b' : '#0f7b6c';
+  const notionOrange = isDark ? '#d9730d' : '#d9730d';
+  const notionMuted = isDark ? '#37352f' : '#e3e2de';
 
-  // 1. Predicted vs Actual (Test Set)
-  const ctxPred = document.getElementById('chart-pred-actual').getContext('2d');
+  // Chart 1: Predicted vs Actual (Holdout)
   if (state.charts.predActual) state.charts.predActual.destroy();
+  const canvasPred = document.getElementById('chart-pred-actual');
+  if (canvasPred) {
+    const ctxPred = canvasPred.getContext('2d');
+    const actuals = res.actual_test;
+    const preds = res.pred_test;
+    const scatterData = actuals.map((a, i) => ({ x: a, y: preds[i] }));
+    const minVal = Math.min(...actuals, ...preds);
+    const maxVal = Math.max(...actuals, ...preds);
 
-  const pairs = res.actual_test.map((act, i) => ({ x: act, y: res.pred_test[i] }));
-  const allVals = [...res.actual_test, ...res.pred_test];
-  const minV = Math.min(...allVals);
-  const maxV = Math.max(...allVals);
-
-  state.charts.predActual = new Chart(ctxPred, {
-    type: 'scatter',
-    data: {
-      datasets: [
-        {
-          label: 'Test Samples',
-          data: pairs,
-          backgroundColor: isDark ? 'rgba(234, 88, 12, 0.7)' : 'rgba(194, 65, 12, 0.65)',
-          borderColor: accentColor,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        },
-        {
-          label: 'Ideal (y = x)',
-          type: 'line',
-          data: [{ x: minV, y: minV }, { x: maxV, y: maxV }],
-          borderColor: isDark ? '#4ade80' : '#166534',
-          borderDash: [5, 5],
-          pointRadius: 0,
-          fill: false
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: textColor, font: { family: 'JetBrains Mono', size: 10 } } },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `Actual: ${ctx.parsed.x.toFixed(2)}, Pred: ${ctx.parsed.y.toFixed(2)}`
+    state.charts.predActual = new Chart(ctxPred, {
+      type: 'scatter',
+      data: {
+        datasets: [
+          {
+            label: 'OLS Prediction',
+            data: scatterData,
+            backgroundColor: notionBlue,
+            borderColor: notionBlue,
+            pointRadius: 3.5
+          },
+          {
+            label: 'Ideal (y = x)',
+            data: [{ x: minVal, y: minVal }, { x: maxVal, y: maxVal }],
+            type: 'line',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(55, 53, 47, 0.3)',
+            borderDash: [4, 4],
+            pointRadius: 0,
+            borderWidth: 1.5,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            title: { display: true, text: 'Observed Holdout Target', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          },
+          y: {
+            title: { display: true, text: 'Model Prediction', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
           }
         }
-      },
-      scales: {
-        x: {
-          title: { display: true, text: 'Actual Target (b)', color: textColor, font: { family: 'JetBrains Mono' } },
-          grid: { color: gridColor },
-          ticks: { color: textColor, font: { family: 'JetBrains Mono' } }
-        },
-        y: {
-          title: { display: true, text: 'Predicted Target', color: textColor, font: { family: 'JetBrains Mono' } },
-          grid: { color: gridColor },
-          ticks: { color: textColor, font: { family: 'JetBrains Mono' } }
-        }
       }
-    }
-  });
-
-  // 2. Scree Plot (Eigenvalues)
-  const ctxScree = document.getElementById('chart-scree').getContext('2d');
-  if (state.charts.scree) state.charts.scree.destroy();
-
-  const eigLabels = res.eigenvalues.map((_, i) => `λ${i + 1}`);
-
-  state.charts.scree = new Chart(ctxScree, {
-    type: 'bar',
-    data: {
-      labels: eigLabels,
-      datasets: [
-        {
-          label: 'Eigenvalue Magnitude',
-          data: res.eigenvalues,
-          backgroundColor: isDark ? 'rgba(56, 189, 248, 0.75)' : 'rgba(14, 116, 144, 0.75)',
-          borderColor: isDark ? '#38bdf8' : '#0e7490',
-          borderWidth: 1,
-          borderRadius: 2
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `Eigenvalue: ${ctx.parsed.y.toFixed(3)}`
-          }
-        }
-      },
-      scales: {
-        x: {
-          title: { display: true, text: 'Principal Component', color: textColor, font: { family: 'JetBrains Mono' } },
-          grid: { color: gridColor },
-          ticks: { color: textColor, font: { family: 'JetBrains Mono' } }
-        },
-        y: {
-          title: { display: true, text: 'Eigenvalue', color: textColor, font: { family: 'JetBrains Mono' } },
-          grid: { color: gridColor },
-          ticks: { color: textColor, font: { family: 'JetBrains Mono' } }
-        }
-      }
-    }
-  });
-
-  // 3. Cumulative Variance Curve
-  const ctxCum = document.getElementById('chart-cumvar').getContext('2d');
-  if (state.charts.cumVar) state.charts.cumVar.destroy();
-
-  const cumPercentages = res.cumulativeVariance.map(v => v * 100);
-  const compLabels = res.cumulativeVariance.map((_, i) => `${i + 1}`);
-
-  state.charts.cumVar = new Chart(ctxCum, {
-    type: 'line',
-    data: {
-      labels: compLabels,
-      datasets: [
-        {
-          label: 'Cumulative Variance %',
-          data: cumPercentages,
-          borderColor: accentColor,
-          backgroundColor: isDark ? 'rgba(234, 88, 12, 0.2)' : 'rgba(194, 65, 12, 0.1)',
-          fill: true,
-          tension: 0.15,
-          pointRadius: 4,
-          pointBackgroundColor: accentColor
-        },
-        {
-          label: `Target Threshold (${(state.varTarget * 100).toFixed(0)}%)`,
-          data: Array(cumPercentages.length).fill(state.varTarget * 100),
-          borderColor: '#ef4444',
-          borderDash: [6, 4],
-          pointRadius: 0,
-          fill: false
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: textColor, font: { family: 'JetBrains Mono', size: 10 } } },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`
-          }
-        }
-      },
-      scales: {
-        x: {
-          title: { display: true, text: 'Components Retained', color: textColor, font: { family: 'JetBrains Mono' } },
-          grid: { color: gridColor },
-          ticks: { color: textColor, font: { family: 'JetBrains Mono' } }
-        },
-        y: {
-          min: 0,
-          max: 105,
-          title: { display: true, text: 'Cumulative Variance %', color: textColor, font: { family: 'JetBrains Mono' } },
-          grid: { color: gridColor },
-          ticks: { color: textColor, font: { family: 'JetBrains Mono' } }
-        }
-      }
-    }
-  });
-}
-
-// --- Bracketed Matrix HTML Formatter ---
-function renderBracketedMatrix(matrix, rowLabels = null, colLabels = null, maxRows = 6, maxCols = 6) {
-  if (!matrix || matrix.length === 0) return '<div class="mono">Empty Matrix</div>';
-
-  const numRows = Math.min(matrix.length, maxRows);
-  const numCols = Math.min(matrix[0].length, maxCols);
-
-  let html = '<table class="matrix-grid-table">';
-
-  // Header row if column labels exist
-  if (colLabels) {
-    html += '<thead><tr>';
-    if (rowLabels) html += '<th></th>';
-    for (let j = 0; j < numCols; j++) {
-      html += `<th>${colLabels[j] || `c${j + 1}`}</th>`;
-    }
-    if (matrix[0].length > maxCols) html += '<th>...</th>';
-    html += '</tr></thead>';
+    });
   }
 
-  html += '<tbody>';
-  for (let i = 0; i < numRows; i++) {
+  // Chart 2: Singular Values Spectrum (Scree Plot)
+  if (state.charts.scree) state.charts.scree.destroy();
+  const canvasScree = document.getElementById('chart-scree');
+  if (canvasScree) {
+    const ctxScree = canvasScree.getContext('2d');
+    const sVals = res.eigenvalues.map(v => Math.sqrt(Math.max(1e-12, v * (res.trainN - 1))));
+
+    state.charts.scree = new Chart(ctxScree, {
+      type: 'line',
+      data: {
+        labels: sVals.map((_, i) => `σ${i + 1}`),
+        datasets: [{
+          data: sVals,
+          borderColor: notionBlue,
+          backgroundColor: notionBlue,
+          pointRadius: 3.5,
+          borderWidth: 1.5,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          },
+          y: {
+            type: 'logarithmic',
+            title: { display: true, text: 'Singular Value (Log Scale)', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          }
+        }
+      }
+    });
+  }
+
+  // Chart 3: Cumulative Explained Variance
+  if (state.charts.cumVar) state.charts.cumVar.destroy();
+  const canvasCumVar = document.getElementById('chart-cumvar');
+  if (canvasCumVar) {
+    const ctxCumVar = canvasCumVar.getContext('2d');
+    const cumPct = res.cumulativeVariance.map(v => v * 100);
+
+    state.charts.cumVar = new Chart(ctxCumVar, {
+      type: 'line',
+      data: {
+        labels: cumPct.map((_, i) => `${i + 1}`),
+        datasets: [
+          {
+            label: 'Cumulative %',
+            data: cumPct,
+            borderColor: notionGreen,
+            backgroundColor: notionGreen,
+            pointRadius: 3,
+            borderWidth: 1.5,
+            fill: false
+          },
+          {
+            label: 'Variance Target',
+            data: cumPct.map(() => state.varTarget * 100),
+            borderColor: '#eb5757',
+            borderDash: [4, 4],
+            pointRadius: 0,
+            borderWidth: 1,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            title: { display: true, text: 'Component Count', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          },
+          y: {
+            min: 0,
+            max: 105,
+            title: { display: true, text: 'Variance Explained (%)', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          }
+        }
+      }
+    });
+  }
+
+  // Chart 4: Hat Matrix Diagonal Leverage Distribution
+  if (state.charts.leverage) state.charts.leverage.destroy();
+  const canvasLev = document.getElementById('chart-leverage');
+  if (canvasLev) {
+    const ctxLev = canvasLev.getContext('2d');
+    const levVals = res.leverage_vals || [];
+
+    state.charts.leverage = new Chart(ctxLev, {
+      type: 'bar',
+      data: {
+        labels: levVals.map((_, i) => `${i + 1}`),
+        datasets: [
+          {
+            data: levVals,
+            backgroundColor: levVals.map(h => h > res.highLevCutoff ? '#eb5757' : (isDark ? 'rgba(255,255,255,0.25)' : 'rgba(55,53,47,0.25)')),
+            borderWidth: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            title: { display: true, text: 'Sample Index', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { display: false },
+            ticks: { display: false }
+          },
+          y: {
+            title: { display: true, text: 'Leverage h_i', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          }
+        }
+      }
+    });
+  }
+
+  // Chart 5: 5-Fold Cross Validation Model Comparison (Horizontal Bar Chart)
+  if (state.charts.modelsCV) state.charts.modelsCV.destroy();
+  const canvasCV = document.getElementById('chart-models-cv');
+  if (canvasCV) {
+    const ctxCV = canvasCV.getContext('2d');
+    const cvModels = res.cvTable.map(r => r.model);
+    const cvRmse = res.cvTable.map(r => r.rmse);
+
+    state.charts.modelsCV = new Chart(ctxCV, {
+      type: 'bar',
+      data: {
+        labels: cvModels,
+        datasets: [{
+          data: cvRmse,
+          backgroundColor: cvModels.map(m => m.includes('Ridge') ? notionOrange : (m.includes('OLS') ? notionBlue : notionMuted)),
+          borderWidth: 0,
+          borderRadius: 2
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            title: { display: true, text: '5-Fold Cross-Validated RMSE (Lower is Better)', color: textColor, font: { family: 'Inter', size: 10 } },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: textColor, font: { family: 'Inter', size: 9.5 } }
+          }
+        }
+      }
+    });
+  }
+}
+
+// --- Bracketed Matrix Renderer ---
+function renderBracketMatrix(mat) {
+  if (!mat || mat.length === 0) return '<span class="mono">—</span>';
+  let html = '<div class="matrix-bracket"><table class="matrix-table"><tbody>';
+  for (let i = 0; i < mat.length; i++) {
     html += '<tr>';
-    if (rowLabels) {
-      html += `<th style="text-align: left; padding-right: 0.5rem; color: var(--text-dim);">${rowLabels[i]}</th>`;
-    }
-    for (let j = 0; j < numCols; j++) {
-      const val = matrix[i][j];
-      const formatted = typeof val === 'number' ? val.toFixed(2) : String(val);
-      html += `<td>${formatted}</td>`;
-    }
-    if (matrix[i].length > maxCols) {
-      html += '<td style="color: var(--text-dim);">...</td>';
+    for (let j = 0; j < mat[i].length; j++) {
+      const val = typeof mat[i][j] === 'number' ? mat[i][j].toFixed(2) : String(mat[i][j]);
+      html += `<td>${val}</td>`;
     }
     html += '</tr>';
   }
-  if (matrix.length > maxRows) {
-    html += `<tr><td colspan="${numCols + (rowLabels ? 1 : 0) + 1}" style="text-align: center; color: var(--text-dim); padding-top: 0.25rem;">⋮ (${matrix.length - maxRows} more rows)</td></tr>`;
-  }
-  html += '</tbody></table>';
-
+  html += '</tbody></table></div>';
   return html;
 }
 
-// --- KaTeX String Helper ---
-function renderMath(latex, display = false) {
-  if (window.katex) {
-    try {
-      return katex.renderToString(latex, { throwOnError: false, displayMode: display });
-    } catch {
-      return latex;
-    }
-  }
-  return latex;
+// --- Utility Helpers ---
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
-// --- Toast Alerts ---
-function showToast(message, type = 'info') {
+function showToast(msg, type = 'info') {
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-
-  const icon = type === 'error' ? '⚠' : (type === 'success' ? '✓' : 'ℹ');
-  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  toast.textContent = msg;
   container.appendChild(toast);
-
   setTimeout(() => {
     toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-    toast.style.transition = 'all 0.25s ease';
-    setTimeout(() => toast.remove(), 250);
-  }, 4000);
+    toast.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3200);
 }
-
-// --- Export Results Handlers ---
-function copyResultsJson() {
-  if (!state.lastResults) {
-    showToast('No pipeline results to copy.', 'error');
-    return;
-  }
-  const jsonStr = JSON.stringify(state.lastResults, null, 2);
-  navigator.clipboard.writeText(jsonStr).then(() => {
-    showToast('Computation results JSON copied to clipboard.', 'success');
-  }).catch(() => {
-    showToast('Failed to copy to clipboard.', 'error');
-  });
-}
-
-function downloadResultsJson() {
-  if (!state.lastResults) {
-    showToast('No pipeline results to download.', 'error');
-    return;
-  }
-  const jsonStr = JSON.stringify(state.lastResults, null, 2);
-  const blob = new Blob([jsonStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `linear_algebra_pipeline_results_${Date.now()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Downloaded pipeline results JSON.', 'success');
-}
-
-// ==========================================================================
-// INLINE FALLBACK LINEAR ALGEBRA RUNNER (Used when Web Worker is restricted)
-// ==========================================================================
-function runLinearAlgebraPipelineInline(rows, targetCol, options) {
-  // Uses the exact same mathematical logic as worker.js
-  const { addRedundant = false, varTarget = 0.90, testFrac = 0.20, seed = 0 } = options;
-  const startTime = performance.now();
-
-  function mulberry32(a) {
-    return function() {
-      let t = a += 0x6D2B79F5;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-
-  // Preprocess
-  const notes = [];
-  const validRows = [];
-  for (const row of rows) {
-    const val = row[targetCol];
-    if (val !== undefined && val !== null && val !== '') {
-      const num = parseFloat(val);
-      if (!isNaN(num)) validRows.push(row);
-    }
-  }
-  const b = validRows.map(r => parseFloat(r[targetCol]));
-  const allCols = Object.keys(validRows[0]).filter(c => c !== targetCol);
-  const remainingCols = [];
-  for (const c of allCols) {
-    const vals = validRows.map(r => r[c]);
-    const uniqueVals = new Set(vals.filter(v => v !== undefined && v !== null && v !== ''));
-    if (uniqueVals.size <= 1) { notes.push(`Dropped constant column '${c}'`); continue; }
-    const cLower = c.toLowerCase().trim();
-    const isIdName = cLower === 'id' || cLower === 'index';
-    const isUniqueInt = uniqueVals.size === validRows.length && vals.every(v => Number.isInteger(Number(v)));
-    if (isIdName || isUniqueInt) { notes.push(`Dropped ID-like column '${c}'`); continue; }
-    remainingCols.push(c);
-  }
-
-  const numCols = [];
-  const catCols = [];
-  for (const c of remainingCols) {
-    const nonNull = validRows.map(r => r[c]).filter(v => v !== undefined && v !== null && v !== '');
-    const isNumeric = nonNull.every(v => !isNaN(parseFloat(v)) && isFinite(v));
-    if (isNumeric) numCols.push(c); else catCols.push(c);
-  }
-
-  const colMedians = {};
-  for (const c of numCols) {
-    const nums = validRows.map(r => parseFloat(r[c])).filter(v => !isNaN(v)).sort((a, b) => a - b);
-    colMedians[c] = nums.length > 0 ? (nums.length % 2 !== 0 ? nums[Math.floor(nums.length/2)] : (nums[Math.floor(nums.length/2)-1] + nums[Math.floor(nums.length/2)])/2) : 0;
-  }
-
-  const encodedFeatureNames = [...numCols];
-  const catCategories = {};
-  for (const c of catCols) {
-    const cats = Array.from(new Set(validRows.map(r => String(r[c] || '').trim()))).sort();
-    const keepCats = cats.slice(1);
-    catCategories[c] = keepCats;
-    for (const kc of keepCats) encodedFeatureNames.push(`${c}_${kc}`);
-    notes.push(`One-hot encoded text column '${c}' (drop_first '${cats[0]}')`);
-  }
-
-  const X = [];
-  for (const r of validRows) {
-    const rowVec = [];
-    for (const c of numCols) {
-      const v = r[c];
-      rowVec.push(v === undefined || v === null || v === '' || isNaN(parseFloat(v)) ? colMedians[c] : parseFloat(v));
-    }
-    for (const c of catCols) {
-      const val = String(r[c] || '').trim();
-      for (const kc of catCategories[c]) rowVec.push(val === kc ? 1.0 : 0.0);
-    }
-    X.push(rowVec);
-  }
-
-  if (addRedundant && encodedFeatureNames.length >= 2) {
-    const c1 = encodedFeatureNames[0], c2 = encodedFeatureNames[1];
-    encodedFeatureNames.push(`${c1}+${c2}`);
-    for (let i = 0; i < X.length; i++) X[i].push(X[i][0] + X[i][1]);
-    notes.push(`Added redundant column '${c1}+${c2}' for demonstration`);
-  }
-
-  const N = X.length, d = encodedFeatureNames.length;
-  const rng = mulberry32(seed);
-  const indices = Array.from({ length: N }, (_, i) => i);
-  for (let i = N - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [indices[i], indices[j]] = [indices[j], indices[i]];
-  }
-
-  const cut = Math.floor((1 - testFrac) * N);
-  const trIdx = indices.slice(0, cut);
-  const teIdx = indices.slice(cut);
-  const n_tr = trIdx.length, n_te = teIdx.length;
-
-  const mu = new Float64Array(d), sd = new Float64Array(d);
-  for (let j = 0; j < d; j++) {
-    let sum = 0; for (let i = 0; i < n_tr; i++) sum += X[trIdx[i]][j];
-    mu[j] = sum / n_tr;
-    let sq = 0; for (let i = 0; i < n_tr; i++) { const diff = X[trIdx[i]][j] - mu[j]; sq += diff * diff; }
-    let s = Math.sqrt(sq / n_tr);
-    sd[j] = s === 0 ? 1.0 : s;
-  }
-
-  const A = Array.from({ length: n_tr }, () => new Float64Array(d));
-  for (let i = 0; i < n_tr; i++) for (let j = 0; j < d; j++) A[i][j] = (X[trIdx[i]][j] - mu[j]) / sd[j];
-  const A_te = Array.from({ length: n_te }, () => new Float64Array(d));
-  for (let i = 0; i < n_te; i++) for (let j = 0; j < d; j++) A_te[i][j] = (X[teIdx[i]][j] - mu[j]) / sd[j];
-
-  let b_sum = 0; for (let i = 0; i < n_tr; i++) b_sum += b[trIdx[i]];
-  const bm = b_sum / n_tr;
-  const bt = new Float64Array(n_tr); for (let i = 0; i < n_tr; i++) bt[i] = b[trIdx[i]] - bm;
-  const bt_te = new Float64Array(n_te); for (let i = 0; i < n_te; i++) bt_te[i] = b[teIdx[i]] - bm;
-
-  // Helpers
-  function matMul(M1, M2) {
-    const m = M1.length, k = M1[0].length, n = M2[0].length;
-    const resM = Array.from({ length: m }, () => new Float64Array(n));
-    for (let i = 0; i < m; i++) for (let p = 0; p < k; p++) {
-      const a = M1[i][p];
-      for (let j = 0; j < n; j++) resM[i][j] += a * M2[p][j];
-    }
-    return resM;
-  }
-
-  function rref(mat, tol = 1e-9) {
-    const Ac = mat.map(r => Array.from(r));
-    const m = Ac.length, n = Ac[0].length;
-    let lead = 0;
-    for (let r = 0; r < m; r++) {
-      if (lead >= n) break;
-      let i = r;
-      while (Math.abs(Ac[i][lead]) < tol) {
-        i++;
-        if (i === m) { i = r; lead++; if (lead === n) return Ac; }
-      }
-      [Ac[i], Ac[r]] = [Ac[r], Ac[i]];
-      const val = Ac[r][lead];
-      for (let c = 0; c < n; c++) Ac[r][c] /= val;
-      for (let rI = 0; rI < m; rI++) {
-        if (rI !== r) {
-          const factor = Ac[rI][lead];
-          for (let c = 0; c < n; c++) Ac[rI][c] -= factor * Ac[r][c];
-        }
-      }
-      lead++;
-    }
-    return Ac;
-  }
-
-  function lu(mat) {
-    const m = mat.length, n = mat[0].length, minDim = Math.min(m, n);
-    const perm = Array.from({ length: m }, (_, i) => i);
-    const L = Array.from({ length: m }, (_, i) => Array.from({ length: minDim }, (_, j) => (i === j ? 1 : 0)));
-    const U = mat.map(r => Array.from(r));
-    for (let k = 0; k < minDim; k++) {
-      let maxVal = Math.abs(U[k][k]), pRow = k;
-      for (let i = k + 1; i < m; i++) if (Math.abs(U[i][k]) > maxVal) { maxVal = Math.abs(U[i][k]); pRow = i; }
-      if (pRow !== k) {
-        [U[k], U[pRow]] = [U[pRow], U[k]];
-        [perm[k], perm[pRow]] = [perm[pRow], perm[k]];
-        for (let j = 0; j < k; j++) { const tmp = L[k][j]; L[k][j] = L[pRow][j]; L[pRow][j] = tmp; }
-      }
-      const pivot = U[k][k];
-      if (Math.abs(pivot) > 1e-12) {
-        for (let i = k + 1; i < m; i++) {
-          const factor = U[i][k] / pivot;
-          L[i][k] = factor; U[i][k] = 0;
-          for (let j = k + 1; j < n; j++) U[i][j] -= factor * U[k][j];
-        }
-      }
-    }
-    const P = Array.from({ length: m }, () => new Float64Array(m));
-    for (let k = 0; k < m; k++) P[perm[k]][k] = 1;
-    return { P, L, U };
-  }
-
-  function greedyGS(mat, tol = 1e-5) {
-    const m = mat.length, n = mat[0].length;
-    const cols = Array.from({ length: n }, (_, j) => {
-      const col = new Float64Array(m);
-      for (let i = 0; i < m; i++) col[i] = mat[i][j];
-      return col;
-    });
-    const piv = Array.from({ length: n }, (_, i) => i);
-    let rank = 0;
-    for (let k = 0; k < Math.min(m, n); k++) {
-      let maxNorm = 0, pCol = k;
-      for (let j = k; j < n; j++) {
-        let normSq = 0; for (let i = 0; i < m; i++) normSq += cols[j][i] * cols[j][i];
-        const norm = Math.sqrt(normSq);
-        if (norm > maxNorm) { maxNorm = norm; pCol = j; }
-      }
-      if (maxNorm < tol) break;
-      if (pCol !== k) {
-        const tmpC = cols[k]; cols[k] = cols[pCol]; cols[pCol] = tmpC;
-        const tmpP = piv[k]; piv[k] = piv[pCol]; piv[pCol] = tmpP;
-      }
-      rank++;
-      for (let i = 0; i < m; i++) cols[k][i] /= maxNorm;
-      for (let j = k + 1; j < n; j++) {
-        let dot = 0; for (let i = 0; i < m; i++) dot += cols[k][i] * cols[j][i];
-        for (let i = 0; i < m; i++) cols[j][i] -= dot * cols[k][i];
-      }
-    }
-    return { piv, rank };
-  }
-
-  function gramSchmidt(M) {
-    const rows = M.length, cols = M[0].length;
-    const Q = Array.from({ length: rows }, () => new Float64Array(cols));
-    for (let j = 0; j < cols; j++) {
-      const v = new Float64Array(rows);
-      for (let r = 0; r < rows; r++) v[r] = M[r][j];
-      for (let i = 0; i < j; i++) {
-        let dot = 0; for (let r = 0; r < rows; r++) dot += Q[r][i] * M[r][j];
-        for (let r = 0; r < rows; r++) v[r] -= dot * Q[r][i];
-      }
-      let norm = 0; for (let r = 0; r < rows; r++) norm += v[r] * v[r];
-      norm = Math.sqrt(norm);
-      if (norm > 1e-12) for (let r = 0; r < rows; r++) Q[r][j] = v[r] / norm;
-    }
-    return Q;
-  }
-
-  function solveUT(R, bVec) {
-    const n = R.length, x = new Float64Array(n);
-    for (let i = n - 1; i >= 0; i--) {
-      let sum = bVec[i];
-      for (let j = i + 1; j < n; j++) sum -= R[i][j] * x[j];
-      x[i] = sum / R[i][i];
-    }
-    return x;
-  }
-
-  function solveSys(matA, bVec) {
-    const n = matA.length, M = matA.map((r, i) => [...r, bVec[i]]);
-    for (let k = 0; k < n; k++) {
-      let maxV = Math.abs(M[k][k]), pR = k;
-      for (let i = k + 1; i < n; i++) if (Math.abs(M[i][k]) > maxV) { maxV = Math.abs(M[i][k]); pR = i; }
-      if (pR !== k) [M[k], M[pR]] = [M[pR], M[k]];
-      const pivot = M[k][k];
-      if (Math.abs(pivot) < 1e-14) continue;
-      for (let j = k; j <= n; j++) M[k][j] /= pivot;
-      for (let i = 0; i < n; i++) {
-        if (i !== k) {
-          const factor = M[i][k];
-          for (let j = k; j <= n; j++) M[i][j] -= factor * M[k][j];
-        }
-      }
-    }
-    return Float64Array.from(M.map(r => r[n]));
-  }
-
-  function jacobi(matC, maxSweeps = 60, tol = 1e-12) {
-    const n = matC.length;
-    const Ac = matC.map(r => Array.from(r));
-    const V = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
-    for (let sw = 0; sw < maxSweeps; sw++) {
-      let maxOff = 0;
-      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (Math.abs(Ac[i][j]) > maxOff) maxOff = Math.abs(Ac[i][j]);
-      if (maxOff < tol) break;
-      for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
-        const apq = Ac[p][q];
-        if (Math.abs(apq) < 1e-15) continue;
-        const app = Ac[p][p], aqq = Ac[q][q];
-        const theta = 0.5 * Math.atan2(2 * apq, aqq - app);
-        const c = Math.cos(theta), s = Math.sin(theta);
-        for (let i = 0; i < n; i++) if (i !== p && i !== q) {
-          const aip = Ac[i][p], aiq = Ac[i][q];
-          Ac[i][p] = c * aip - s * aiq; Ac[p][i] = Ac[i][p];
-          Ac[i][q] = s * aip + c * aiq; Ac[q][i] = Ac[i][q];
-        }
-        Ac[p][p] = c * c * app - 2 * s * c * apq + s * s * aqq;
-        Ac[q][q] = s * s * app + 2 * s * c * apq + c * c * aqq;
-        Ac[p][q] = 0; Ac[q][p] = 0;
-        for (let i = 0; i < n; i++) {
-          const vip = V[i][p], viq = V[i][q];
-          V[i][p] = c * vip - s * viq;
-          V[i][q] = s * vip + c * viq;
-        }
-      }
-    }
-    const eig = []; for (let i = 0; i < n; i++) eig.push({ val: Ac[i][i], vec: V.map(r => r[i]) });
-    eig.sort((a, b) => b.val - a.val);
-    return { values: eig.map(e => e.val), vectors: Array.from({ length: n }, (_, r) => eig.map(e => e.vec[r])) };
-  }
-
-  function rmse(actual, pred) {
-    let sum = 0; for (let i = 0; i < actual.length; i++) { const diff = actual[i] - pred[i]; sum += diff * diff; }
-    return Math.sqrt(sum / actual.length);
-  }
-
-  // Execute Steps
-  const r_ = Math.min(6, n_tr), c_ = Math.min(6, d);
-  const blk = Array.from({ length: r_ }, (_, i) => Array.from({ length: c_ }, (_, j) => A[i][j]));
-  const rrefBlk = rref(blk.map(r => r.map(v => Math.round(v * 100)/100)));
-  const { P: luP, L: luL, U: luU } = lu(blk);
-  const PLU = matMul(matMul(luP, luL), luU);
-  let luErr = 0; for (let i = 0; i < r_; i++) for (let j = 0; j < c_; j++) luErr = Math.max(luErr, Math.abs(PLU[i][j] - blk[i][j]));
-
-  const { piv, rank } = greedyGS(A, 1e-5);
-  const keep = piv.slice(0, rank).sort((a, b) => a - b);
-  const basis = keep.map(i => encodedFeatureNames[i]);
-  const dropped = encodedFeatureNames.filter((_, i) => !keep.includes(i));
-
-  const B = Array.from({ length: n_tr }, () => new Float64Array(rank));
-  for (let i = 0; i < n_tr; i++) for (let j = 0; j < rank; j++) B[i][j] = A[i][keep[j]];
-
-  const Q = gramSchmidt(B);
-  let qtqErr = 0;
-  for (let i = 0; i < rank; i++) for (let j = 0; j < rank; j++) {
-    let dot = 0; for (let r = 0; r < n_tr; r++) dot += Q[r][i] * Q[r][j];
-    qtqErr = Math.max(qtqErr, Math.abs(dot - (i === j ? 1 : 0)));
-  }
-
-  const Qt_bt = new Float64Array(rank);
-  for (let j = 0; j < rank; j++) { let dot = 0; for (let r = 0; r < n_tr; r++) dot += Q[r][j] * bt[r]; Qt_bt[j] = dot; }
-  const proj = new Float64Array(n_tr);
-  for (let r = 0; r < n_tr; r++) for (let j = 0; j < rank; j++) proj[r] += Q[r][j] * Qt_bt[j];
-  const resid = new Float64Array(n_tr);
-  for (let r = 0; r < n_tr; r++) resid[r] = bt[r] - proj[r];
-
-  let residErr = 0, maxBt = 0;
-  for (let r = 0; r < n_tr; r++) maxBt = Math.max(maxBt, Math.abs(bt[r]));
-  for (let j = 0; j < rank; j++) {
-    let dot = 0; for (let r = 0; r < n_tr; r++) dot += B[r][j] * resid[r];
-    residErr = Math.max(residErr, Math.abs(dot));
-  }
-
-  const R = Array.from({ length: rank }, () => new Float64Array(rank));
-  for (let i = 0; i < rank; i++) for (let j = 0; j < rank; j++) {
-    let dot = 0; for (let r = 0; r < n_tr; r++) dot += Q[r][i] * B[r][j];
-    R[i][j] = dot;
-  }
-  const x = solveUT(R, Qt_bt);
-
-  const BtB = Array.from({ length: rank }, () => new Float64Array(rank));
-  for (let i = 0; i < rank; i++) for (let j = 0; j < rank; j++) {
-    let dot = 0; for (let r = 0; r < n_tr; r++) dot += B[r][i] * B[r][j];
-    BtB[i][j] = dot;
-  }
-  const Btb = new Float64Array(rank);
-  for (let i = 0; i < rank; i++) { let dot = 0; for (let r = 0; r < n_tr; r++) dot += B[r][i] * bt[r]; Btb[i] = dot; }
-  const x_ne = solveSys(BtB, Btb);
-  let neErr = 0;
-  for (let i = 0; i < rank; i++) neErr = Math.max(neErr, Math.abs(x[i] - x_ne[i]));
-
-  const pred_tr = new Float64Array(n_tr);
-  for (let i = 0; i < n_tr; i++) for (let j = 0; j < rank; j++) pred_tr[i] += B[i][j] * x[j];
-  const tr_rmse = rmse(bt, pred_tr);
-
-  const pred_te = new Float64Array(n_te);
-  for (let i = 0; i < n_te; i++) for (let j = 0; j < rank; j++) pred_te[i] += A_te[i][keep[j]] * x[j];
-  const te_rmse = rmse(bt_te, pred_te);
-  const base_rmse = rmse(bt_te, new Float64Array(n_te));
-
-  // Covariance & Jacobi
-  const C = Array.from({ length: rank }, () => new Float64Array(rank));
-  const denom = n_tr > 1 ? n_tr - 1 : 1;
-  for (let i = 0; i < rank; i++) for (let j = 0; j < rank; j++) {
-    let dot = 0; for (let r = 0; r < n_tr; r++) dot += B[r][i] * B[r][j];
-    C[i][j] = dot / denom;
-  }
-  const { values: eigVals, vectors: eigVecs } = jacobi(C);
-
-  let maxCvErr = 0;
-  for (let j = 0; j < rank; j++) {
-    const v = eigVecs.map(r => r[j]), lam = eigVals[j];
-    for (let i = 0; i < rank; i++) {
-      let cvi = 0; for (let k = 0; k < rank; k++) cvi += C[i][k] * v[k];
-      maxCvErr = Math.max(maxCvErr, Math.abs(cvi - lam * v[i]));
-    }
-  }
-
-  let traceC = 0; for (let i = 0; i < rank; i++) traceC += C[i][i];
-  const sumEig = eigVals.reduce((acc, v) => acc + v, 0);
-  const traceDiff = Math.abs(traceC - sumEig);
-
-  const cumsumEig = []; let runSum = 0;
-  for (let i = 0; i < rank; i++) { runSum += eigVals[i]; cumsumEig.push(runSum / sumEig); }
-
-  let k_pca = rank;
-  for (let i = 0; i < rank; i++) if (cumsumEig[i] >= varTarget) { k_pca = i + 1; break; }
-  k_pca = Math.min(k_pca, rank);
-
-  const W = Array.from({ length: rank }, (_, r) => eigVecs[r].slice(0, k_pca));
-  const Z = matMul(B, W);
-  const B_te = Array.from({ length: n_te }, (_, i) => keep.map(cIdx => A_te[i][cIdx]));
-  const Z_te = matMul(B_te, W);
-
-  const ZtZ = Array.from({ length: k_pca }, () => new Float64Array(k_pca));
-  for (let i = 0; i < k_pca; i++) for (let j = 0; j < k_pca; j++) {
-    let dot = 0; for (let r = 0; r < n_tr; r++) dot += Z[r][i] * Z[r][j];
-    ZtZ[i][j] = dot;
-  }
-  const Ztb = new Float64Array(k_pca);
-  for (let i = 0; i < k_pca; i++) { let dot = 0; for (let r = 0; r < n_tr; r++) dot += Z[r][i] * bt[r]; Ztb[i] = dot; }
-  const xz = solveSys(ZtZ, Ztb);
-
-  const pred_red_te = new Float64Array(n_te);
-  for (let i = 0; i < n_te; i++) for (let j = 0; j < k_pca; j++) pred_red_te[i] += Z_te[i][j] * xz[j];
-  const red_rmse = rmse(bt_te, pred_red_te);
-
-  const checks = {
-    "LU reconstructs block (P@L@U = A)": { pass: luErr < 1e-4, condition: "\\|P L U - A_{\\text{blk}}\\|_{\\infty} < 10^{-4}", val: luErr },
-    "Q^T Q = I (orthonormal)": { pass: qtqErr < 1e-4, condition: "\\|Q^T Q - I\\|_{\\infty} < 10^{-4}", val: qtqErr },
-    "Residual perpendicular to columns": { pass: residErr < 1e-4 * Math.max(1, maxBt), condition: "\\|B^T \\cdot \\text{resid}\\|_{\\infty} \\approx 0", val: residErr },
-    "Matches normal equations (A^T A x = A^T b)": { pass: neErr < 1e-3, condition: "\\|x_{\\text{QR}} - x_{\\text{NE}}\\|_{\\infty} < 10^{-3}", val: neErr },
-    "C v = lambda v for all pairs": { pass: maxCvErr < 1e-4, condition: "\\max_i \\|C v_i - \\lambda_i v_i\\|_{\\infty} < 10^{-4}", val: maxCvErr },
-    "Sum of eigenvalues = trace": { pass: traceDiff < 1e-4, condition: "\\left|\\sum \\lambda_i - \\text{tr}(C)\\right| < 10^{-4}", val: traceDiff }
-  };
-
-  function norm2(vec) { let sum = 0; for (let i = 0; i < vec.length; i++) sum += vec[i] * vec[i]; return Math.sqrt(sum); }
-
-  return {
-    rawN: N, rawD: d, trainN: n_tr, testN: n_te,
-    targetName: targetCol, targetMean: bm,
-    rank, nullity: d - rank, dropped, basis,
-    weights: Object.fromEntries(basis.map((name, i) => [name, x[i]])),
-    eigenvalues: Array.from(eigVals),
-    cumulativeVariance: cumsumEig,
-    varianceRetained: cumsumEig[k_pca - 1],
-    k: k_pca,
-    train_rmse: tr_rmse, test_rmse: te_rmse, reduced_rmse: red_rmse, baseline_rmse: base_rmse,
-    normB: norm2(bt), normProj: norm2(proj), normResid: norm2(resid),
-    checks, notes, computationMs: performance.now() - startTime,
-    previewA: Array.from({ length: Math.min(5, n_tr) }, (_, i) => Array.from({ length: Math.min(6, d) }, (_, j) => Number(A[i][j].toFixed(3)))),
-    previewBlock: blk, rrefBlock: rrefBlk, luP, luL, luU,
-    previewQ: Array.from({ length: Math.min(5, n_tr) }, (_, i) => Array.from({ length: Math.min(5, rank) }, (_, j) => Number(Q[i][j].toFixed(3)))),
-    actual_test: Array.from(bt_te).map(v => v + bm),
-    pred_test: Array.from(pred_te).map(v => v + bm)
-  };
-}
-

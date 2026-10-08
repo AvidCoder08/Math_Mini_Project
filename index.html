@@ -3,755 +3,690 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Linear Algebra Automated Data Analysis Tool</title>
+  <title>Linear Algebra Automated Data Analysis — Notion</title>
   
-  <!-- Google Fonts: Fraunces (Headings), Source Serif 4 (Body), JetBrains Mono (Code/Math/Figures) -->
+  <!-- Notion Default Fonts & Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
 
-  <!-- KaTeX for High-Fidelity Mathematical Typesetting -->
+  <!-- KaTeX for Typesetting -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
-  <!-- Chart.js for Archival Styled Interactive Plots -->
+  <!-- Chart.js for Scientific Visualizations -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- PapaParse for Fast Client-Side CSV Parsing -->
+  <!-- PapaParse for Fast CSV Parsing -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-  <!-- Custom Stylesheet -->
+  <!-- Notion-Styled Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Top Archival Navigation & Header Bar -->
-  <header class="site-header">
-    <div class="header-container">
-      <div class="brand-block">
-        <span class="brand-symbol">A</span>
-        <h1 class="brand-title">Linear Algebra Automated Tool</h1>
-        <span class="brand-subtitle">10-Stage Pipeline</span>
-      </div>
+  <!-- Notion App Shell -->
+  <div class="notion-app">
 
-      <!-- Navigation Tabs -->
-      <nav class="nav-tabs" aria-label="Main Navigation">
-        <button class="nav-tab-btn active" data-tab="worksheet">
-          <span>📓</span> Worksheet
-        </button>
-        <button class="nav-tab-btn" data-tab="viva">
-          <span>📝</span> Viva Cheat Sheet
-        </button>
-        <button class="nav-tab-btn" data-tab="export">
-          <span>💾</span> Export Results
-        </button>
-      </nav>
-
-      <!-- Utility Controls -->
-      <div class="header-actions">
-        <div class="worker-status-badge" id="worker-status">
-          <span class="status-dot"></span>
-          <span id="worker-status-text">Worker Ready</span>
-        </div>
-        <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Light/Dark Inks">
-          <span id="theme-icon">◐</span>
-          <span id="theme-label">Ink Mode</span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Application Grid -->
-  <div class="app-container">
-    
-    <!-- Left Sticky Configuration Sidebar -->
-    <aside class="settings-sidebar">
-      <div class="sidebar-title">
-        <span>Parameters & Data</span>
-        <span class="label-hint">Settings</span>
-      </div>
-
-      <!-- Dataset Source Selection -->
-      <div class="form-group">
-        <label class="form-label">
-          <span>Dataset Source</span>
-        </label>
-        <div class="source-selector">
-          <button type="button" class="source-btn active" data-source="housing">Housing</button>
-          <button type="button" class="source-btn" data-source="diabetes">Diabetes</button>
-          <button type="button" class="source-btn" data-source="upload">Upload</button>
+    <!-- Notion Left Sidebar -->
+    <aside class="notion-sidebar" id="notion-sidebar">
+      <div class="sidebar-top">
+        <div class="workspace-switcher">
+          <div class="workspace-icon">📐</div>
+          <div class="workspace-info">
+            <span class="workspace-name">Linear Algebra Lab</span>
+            <span class="workspace-plan">MA241A Project</span>
+          </div>
         </div>
       </div>
 
-      <!-- CSV Upload Dropzone (Conditional) -->
-      <div class="form-group" id="upload-group" style="display: none;">
-        <label class="form-label">
-          <span>Custom CSV File</span>
-          <span class="label-hint">Drag & drop</span>
-        </label>
-        <div class="drop-zone" id="drop-zone">
-          <div class="drop-zone-text">Drop CSV here or click to browse</div>
-          <div class="loaded-file-badge" id="loaded-file-name" style="display: none;"></div>
-          <input type="file" id="file-input" class="file-input-hidden" accept=".csv,text/csv">
-        </div>
+      <div class="sidebar-nav-section">
+        <div class="nav-section-title">Navigation</div>
+        <ul class="nav-tree">
+          <li class="nav-item active">
+            <a href="#page-top" class="nav-link">
+              <span class="nav-icon">📄</span>
+              <span class="nav-text">Pipeline Document</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#sec-synthesis" class="nav-link">
+              <span class="nav-icon">💡</span>
+              <span class="nav-text">Diagnostic Synthesis</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#sec-models" class="nav-link">
+              <span class="nav-icon">📊</span>
+              <span class="nav-text">Model Scoreboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#sec-ledger" class="nav-link">
+              <span class="nav-icon">📋</span>
+              <span class="nav-text">Verification Ledger</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#sec-figures" class="nav-link">
+              <span class="nav-icon">📈</span>
+              <span class="nav-text">Analytical Figures</span>
+            </a>
+          </li>
+        </ul>
       </div>
 
-      <!-- Target Column Selector -->
-      <div class="form-group">
-        <label class="form-label" for="target-select">
-          <span>Target Column (b)</span>
-          <span class="label-hint" id="target-count-hint">Numeric only</span>
-        </label>
-        <select id="target-select" class="select-input">
-          <!-- Populated dynamically -->
-        </select>
+      <div class="sidebar-nav-section">
+        <div class="nav-section-title">10 Stages</div>
+        <ul class="nav-tree stage-tree">
+          <li><a href="#stage-1" class="nav-link"><span class="nav-num">1</span> Matrix Formulation</a></li>
+          <li><a href="#stage-2" class="nav-link"><span class="nav-num">2</span> Gauss-Jordan & LU</a></li>
+          <li><a href="#stage-3" class="nav-link"><span class="nav-num">3</span> Rank, SVD & Cond</a></li>
+          <li><a href="#stage-4" class="nav-link"><span class="nav-num">4</span> Basis & VIF</a></li>
+          <li><a href="#stage-5" class="nav-link"><span class="nav-num">5</span> Gram-Schmidt QR</a></li>
+          <li><a href="#stage-6" class="nav-link"><span class="nav-num">6</span> Projection & Leverage</a></li>
+          <li><a href="#stage-7" class="nav-link"><span class="nav-num">7</span> Least Squares & SE</a></li>
+          <li><a href="#stage-8" class="nav-link"><span class="nav-num">8</span> Spectral Decomposition</a></li>
+          <li><a href="#stage-9" class="nav-link"><span class="nav-num">9</span> Subspace Regularization</a></li>
+          <li><a href="#stage-10" class="nav-link"><span class="nav-num">10</span> 5-Fold Cross-Val</a></li>
+        </ul>
       </div>
 
-      <!-- Variance Retention Target (PCA) -->
-      <div class="form-group">
-        <label class="form-label" for="var-target-slider">
-          <span>PCA Variance Target</span>
-          <span class="label-hint">Retain info</span>
-        </label>
-        <div class="slider-container">
-          <input type="range" id="var-target-slider" class="range-slider" min="50" max="99" value="90" step="1">
-          <span class="slider-val-badge" id="var-target-val">90%</span>
+      <div class="sidebar-footer">
+        <div class="sidebar-meta-item">
+          <span class="meta-label">Engine:</span>
+          <span class="meta-val" id="worker-status-text">Ready</span>
         </div>
-      </div>
-
-      <!-- Train / Test Split Fraction -->
-      <div class="form-group">
-        <label class="form-label" for="test-frac-slider">
-          <span>Test Partition</span>
-          <span class="label-hint">Holdout</span>
-        </label>
-        <div class="slider-container">
-          <input type="range" id="test-frac-slider" class="range-slider" min="10" max="40" value="20" step="5">
-          <span class="slider-val-badge" id="test-frac-val">20%</span>
+        <div class="sidebar-meta-item">
+          <span class="meta-label">Samples:</span>
+          <span class="meta-val" id="telemetry-rows">—</span>
         </div>
-      </div>
-
-      <!-- Mulberry32 PRNG Seed -->
-      <div class="form-group">
-        <label class="form-label" for="seed-input">
-          <span>RNG Seed</span>
-          <span class="label-hint">mulberry32</span>
-        </label>
-        <input type="number" id="seed-input" class="text-input" value="42" step="1">
-      </div>
-
-      <!-- Demonstration Collinearity Toggle -->
-      <div class="form-group">
-        <label class="checkbox-label" title="Appends synthetic c1 + c2 column to illustrate rank reduction & basis pruning">
-          <input type="checkbox" id="redundant-toggle" class="checkbox-input" checked>
-          <span>Add redundant feature <span class="mono">(c₁ + c₂)</span> to demonstrate rank reduction</span>
-        </label>
-      </div>
-
-      <!-- Primary Execution Trigger -->
-      <button type="button" class="btn-run" id="btn-run">
-        <span>▶</span> Run Decomposition
-      </button>
-
-      <!-- Live Telemetry Card -->
-      <div class="telemetry-card">
-        <div class="telemetry-row">
-          <span>Active Rows:</span>
-          <span class="telemetry-val" id="telemetry-rows">—</span>
+        <div class="sidebar-meta-item">
+          <span class="meta-label">Features:</span>
+          <span class="meta-val" id="telemetry-cols">—</span>
         </div>
-        <div class="telemetry-row">
-          <span>Raw Columns:</span>
-          <span class="telemetry-val" id="telemetry-cols">—</span>
+        <div class="sidebar-meta-item">
+          <span class="meta-label">Target (b):</span>
+          <span class="meta-val" id="telemetry-target">—</span>
         </div>
-        <div class="telemetry-row">
-          <span>Target Variable:</span>
-          <span class="telemetry-val" id="telemetry-target">—</span>
-        </div>
-        <div class="telemetry-row">
-          <span>Computation Time:</span>
-          <span class="telemetry-val" id="telemetry-time">—</span>
+        <div class="sidebar-meta-item">
+          <span class="meta-label">Latency:</span>
+          <span class="meta-val" id="telemetry-time">—</span>
         </div>
       </div>
     </aside>
 
-    <!-- Main Output / Worksheet Workspace -->
-    <main class="main-content">
-
-      <!-- TAB 1: WORKSHEET (The 10 Linear Algebra Steps) -->
-      <section class="tab-pane active" id="pane-worksheet">
-        
-        <!-- Top Scoreboard Hero -->
-        <div class="scoreboard-card">
-          <div class="scoreboard-header">
-            <h2 class="scoreboard-title">Linear Algebra Model Scoreboard</h2>
-            <span class="dataset-tag" id="summary-dataset-tag">Synthetic Housing Dataset</span>
-          </div>
-          
-          <div class="scoreboard-metrics-grid">
-            <div class="metric-box">
-              <span class="metric-label">Full Model Test RMSE</span>
-              <span class="metric-value accented" id="stat-full-rmse">—</span>
-              <span class="metric-sub" id="stat-full-features">— features</span>
-            </div>
-            <div class="metric-box">
-              <span class="metric-label">Reduced (PCA) Test RMSE</span>
-              <span class="metric-value" id="stat-red-rmse">—</span>
-              <span class="metric-sub" id="stat-red-components">— components</span>
-            </div>
-            <div class="metric-box">
-              <span class="metric-label">Baseline Test RMSE</span>
-              <span class="metric-value" id="stat-base-rmse">—</span>
-              <span class="metric-sub">Target mean prediction</span>
-            </div>
-            <div class="metric-box">
-              <span class="metric-label">Rank & Nullity</span>
-              <span class="metric-value" id="stat-rank-nullity">—</span>
-              <span class="metric-sub" id="stat-dropped-count">— redundant dropped</span>
-            </div>
+    <!-- Main Notion Document Viewport -->
+    <div class="notion-viewport">
+      
+      <!-- Notion Top Navigation Bar -->
+      <header class="notion-topbar">
+        <div class="topbar-left">
+          <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" title="Toggle Sidebar">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 3.5h12v1H2v-1zm0 4h12v1H2v-1zm0 4h12v1H2v-1z"/>
+            </svg>
+          </button>
+          <div class="notion-breadcrumbs">
+            <span class="breadcrumb-item">Workspaces</span>
+            <span class="breadcrumb-divider">/</span>
+            <span class="breadcrumb-item">Linear Algebra</span>
+            <span class="breadcrumb-divider">/</span>
+            <span class="breadcrumb-item active">Automated Pipeline Monograph</span>
           </div>
         </div>
 
-        <!-- Data Preprocessing Notes Log -->
-        <div class="notes-banner" id="notes-banner">
-          <strong>Data Preparation & Transformation Log:</strong>
-          <ul class="notes-list" id="notes-list">
-            <li>Awaiting pipeline execution...</li>
-          </ul>
+        <div class="topbar-right">
+          <button type="button" class="notion-btn primary" id="btn-run">
+            <span class="btn-icon">▶</span>
+            <span>Run Pipeline</span>
+          </button>
+          <button type="button" class="notion-icon-btn" id="theme-toggle" title="Toggle Light / Dark Mode">
+            <span id="theme-icon">◐</span>
+          </button>
         </div>
+      </header>
 
-        <!-- Correctness Checker Ledger & Stamp -->
-        <div class="ledger-section">
-          <div class="ledger-header">
-            <h3 class="ledger-title">Linear Algebra Correctness Ledger</h3>
-            <span class="dataset-tag">Automated Verification Protocol</span>
+      <!-- Document Canvas -->
+      <main class="notion-page" id="page-top">
+        <div class="notion-page-content">
+
+          <!-- Notion Page Header -->
+          <div class="page-header">
+            <div class="page-icon">📐</div>
+            <h1 class="page-title">Linear Algebra Automated Data Analysis</h1>
+            <p class="page-description">
+              A ten-stage matrix decomposition and generalization pipeline. Maps raw tables into standardized coordinates, derives fundamental subspaces via SVD and Gauss-Jordan elimination, extracts orthonormal bases with modified Gram-Schmidt, diagnoses multicollinearity through VIF, and validates subspace regularization models against cross-validated holdouts.
+            </p>
           </div>
 
-          <div class="ledger-table-wrap">
-            <table class="ledger-table">
-              <thead>
-                <tr>
-                  <th>Mathematical Verification Check</th>
-                  <th>Theoretical Condition</th>
-                  <th>Max Absolute Residual</th>
-                  <th>Verdict</th>
-                </tr>
-              </thead>
-              <tbody id="ledger-body">
-                <!-- Populated dynamically -->
-              </tbody>
-            </table>
-          </div>
+          <!-- Notion Properties Table -->
+          <div class="notion-properties-block">
+            <div class="property-row">
+              <div class="property-name">
+                <span class="prop-icon">📁</span>
+                <span>Dataset Source</span>
+              </div>
+              <div class="property-value">
+                <div class="notion-pill-selector">
+                  <button type="button" class="notion-pill active" data-source="housing">Housing</button>
+                  <button type="button" class="notion-pill" data-source="diabetes">Diabetes</button>
+                  <button type="button" class="notion-pill" data-source="upload">Custom CSV</button>
+                </div>
+                <span class="notion-tag" id="summary-dataset-tag" style="margin-left: 10px;">Synthetic Housing (~150 Rows)</span>
+              </div>
+            </div>
 
-          <!-- Rubber Stamp Verdict -->
-          <div class="stamp-container">
-            <div class="rubber-stamp verified" id="overall-stamp">
-              VERIFIED: ALL CHECKS PASSED
+            <div class="property-row" id="upload-group" style="display: none;">
+              <div class="property-name">
+                <span class="prop-icon">⬆</span>
+                <span>File Ingestion</span>
+              </div>
+              <div class="property-value">
+                <div class="notion-dropzone" id="drop-zone">
+                  <span>Drop CSV file here or click to browse</span>
+                  <span class="loaded-file-name" id="loaded-file-name" style="display: none;"></span>
+                  <input type="file" id="file-input" class="file-input-hidden" accept=".csv,text/csv">
+                </div>
+              </div>
+            </div>
+
+            <div class="property-row">
+              <div class="property-name">
+                <span class="prop-icon">🎯</span>
+                <span>Target Column (b)</span>
+              </div>
+              <div class="property-value">
+                <select id="target-select" class="notion-select"></select>
+              </div>
+            </div>
+
+            <div class="property-row">
+              <div class="property-name">
+                <span class="prop-icon">📉</span>
+                <span>PCA Variance Target</span>
+              </div>
+              <div class="property-value inline-control">
+                <input type="range" id="var-target-slider" class="notion-slider" min="50" max="99" value="90" step="1">
+                <span class="notion-tag" id="var-target-val">90%</span>
+              </div>
+            </div>
+
+            <div class="property-row">
+              <div class="property-name">
+                <span class="prop-icon">✂</span>
+                <span>Holdout Split</span>
+              </div>
+              <div class="property-value inline-control">
+                <input type="range" id="test-frac-slider" class="notion-slider" min="10" max="40" value="20" step="5">
+                <span class="notion-tag" id="test-frac-val">20%</span>
+              </div>
+            </div>
+
+            <div class="property-row">
+              <div class="property-name">
+                <span class="prop-icon">🎲</span>
+                <span>PRNG Seed</span>
+              </div>
+              <div class="property-value">
+                <input type="number" id="seed-input" class="notion-input-num" value="42" step="1">
+              </div>
+            </div>
+
+            <div class="property-row">
+              <div class="property-name">
+                <span class="prop-icon">🔗</span>
+                <span>Collinear Demo Feature</span>
+              </div>
+              <div class="property-value">
+                <label class="notion-checkbox-wrap">
+                  <input type="checkbox" id="redundant-toggle" checked>
+                  <span class="checkbox-label">Add synthetic collinear column (c₁ + c₂) to demonstrate basis pruning</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="property-row">
+              <div class="property-name">
+                <span class="prop-icon">🏷</span>
+                <span>Status</span>
+              </div>
+              <div class="property-value">
+                <span class="notion-badge green" id="overall-status-badge">All 16 Invariants Verified</span>
+              </div>
             </div>
           </div>
+
+          <hr class="notion-divider">
+
+          <!-- Diagnostic Highlights Banner (Notion Cards) -->
+          <div class="notion-cards-grid">
+            <div class="notion-card highlight">
+              <div class="card-caption">Leading Linear Model</div>
+              <div class="card-title" id="stat-best-model">—</div>
+              <div class="card-sub" id="stat-best-rmse">Awaiting computation...</div>
+            </div>
+            <div class="notion-card">
+              <div class="card-caption">OLS QR Test RMSE</div>
+              <div class="card-title" id="stat-full-rmse">—</div>
+              <div class="card-sub" id="stat-full-features">— basis features</div>
+            </div>
+            <div class="notion-card">
+              <div class="card-caption">Dimension & Rank</div>
+              <div class="card-title" id="stat-rank-nullity">—</div>
+              <div class="card-sub" id="stat-dropped-count">— redundant dropped</div>
+            </div>
+            <div class="notion-card">
+              <div class="card-caption">Condition Number κ(A)</div>
+              <div class="card-title" id="stat-cond-num">—</div>
+              <div class="card-sub" id="stat-cond-status">—</div>
+            </div>
+          </div>
+
+          <!-- Section: Diagnostic Findings Callout -->
+          <section class="notion-block" id="sec-synthesis">
+            <div class="notion-callout blue">
+              <div class="callout-icon">💡</div>
+              <div class="callout-content">
+                <div class="callout-title">Executive Diagnostic Findings</div>
+                <ul class="notion-bullet-list" id="synthesis-list">
+                  <li>Awaiting pipeline computation. Click "Run Pipeline" to generate findings.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="notion-callout gray">
+              <div class="callout-icon">⚙️</div>
+              <div class="callout-content">
+                <div class="callout-title">Data Preprocessing & Hygiene Log</div>
+                <ul class="notion-bullet-list mono-list" id="notes-list">
+                  <li>Awaiting computation...</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section: Model Scoreboard Database -->
+          <section class="notion-block" id="sec-models">
+            <div class="notion-heading-block">
+              <h2 class="notion-h2">Model Generalization Scoreboard</h2>
+              <span class="heading-meta">5-Fold Cross-Validation (all models refit inside every fold)</span>
+            </div>
+            
+            <div class="notion-database-table-wrap">
+              <table class="notion-table" id="models-table">
+                <thead>
+                  <tr>
+                    <th>Model Specification</th>
+                    <th class="num">Holdout RMSE (Mean ± SD)</th>
+                    <th class="num">Holdout MAE</th>
+                    <th class="num">Holdout R² (Mean ± SD)</th>
+                  </tr>
+                </thead>
+                <tbody id="models-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Section: Theoretical Verification Ledger Database -->
+          <section class="notion-block" id="sec-ledger">
+            <div class="notion-heading-block">
+              <h2 class="notion-h2">Theoretical Correctness Ledger</h2>
+              <span class="heading-meta">16 Invariant Mathematical Identities</span>
+            </div>
+
+            <div class="notion-database-table-wrap">
+              <table class="notion-table ledger-table">
+                <thead>
+                  <tr>
+                    <th style="width: 32%;">Invariant Condition</th>
+                    <th style="width: 38%;">Mathematical Formulation</th>
+                    <th style="width: 18%;" class="num">Max Absolute Residual</th>
+                    <th style="width: 12%; text-align: center;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Section: Analytical Figures -->
+          <section class="notion-block" id="sec-figures">
+            <div class="notion-heading-block">
+              <h2 class="notion-h2">Analytical Figures & Distributions</h2>
+              <span class="heading-meta">Spectral Scree, Leverage & Error Spread</span>
+            </div>
+
+            <div class="notion-figures-grid">
+              <div class="notion-figure-card">
+                <div class="fig-title">Figure 1: Observed vs. Predicted Response</div>
+                <div class="canvas-wrap">
+                  <canvas id="chart-pred-actual"></canvas>
+                </div>
+              </div>
+
+              <div class="notion-figure-card">
+                <div class="fig-title">Figure 2: Singular Values Spectrum (Scree)</div>
+                <div class="canvas-wrap">
+                  <canvas id="chart-scree"></canvas>
+                </div>
+              </div>
+
+              <div class="notion-figure-card">
+                <div class="fig-title">Figure 3: Cumulative Explained Variance</div>
+                <div class="canvas-wrap">
+                  <canvas id="chart-cumvar"></canvas>
+                </div>
+              </div>
+
+              <div class="notion-figure-card">
+                <div class="fig-title">Figure 4: Hat Matrix Leverage Distribution</div>
+                <div class="canvas-wrap">
+                  <canvas id="chart-leverage"></canvas>
+                </div>
+              </div>
+
+              <div class="notion-figure-card full-span">
+                <div class="fig-title">Figure 5: 5-Fold Cross-Validation Model Comparison</div>
+                <div class="canvas-wrap tall">
+                  <canvas id="chart-models-cv"></canvas>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section: 10 Mathematical Stages (Notion Toggle Headings) -->
+          <section class="notion-block" id="sec-stages">
+            <div class="notion-heading-block">
+              <h2 class="notion-h2">Ten-Stage Mathematical Walkthrough</h2>
+              <span class="heading-meta">Click toggles to expand individual stages</span>
+            </div>
+
+            <div class="notion-toggles-container">
+
+              <!-- STAGE 1 -->
+              <details class="notion-toggle" id="stage-1" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 1</span>
+                  <span class="toggle-text">Matrix Formulation (A x ≈ b)</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Observations as standardized matrix $A \in \mathbb{R}^{n \times d}$ and centered response $b \in \mathbb{R}^n$.</div>
+                      <div><strong>Purpose:</strong> Guarantees equal scale weighting across features before computing inner products.</div>
+                      <div><strong>Outcome:</strong> <span id="step1-outcome">Standardized matrix constructed.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\text{Design Matrix: } \quad A_{i,j} = \frac{X_{i,j} - \mu_j}{\sigma_j}, \quad b_i = y_i - \bar{y}, \quad A \in \mathbb{R}^{n \times d}$$
+                  </div>
+                  <div class="notion-preview-box">
+                    <div class="preview-header">
+                      <span>Standardized Training Matrix Preview (First 5 Rows)</span>
+                      <span class="mono" id="step1-dims">Dimensions: —</span>
+                    </div>
+                    <div class="matrix-scroll" id="step1-matrix-a"></div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- STAGE 2 -->
+              <details class="notion-toggle" id="stage-2" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 2</span>
+                  <span class="toggle-text">Full Gauss-Jordan RREF & Block LU Factorization</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Gauss-Jordan elimination on full matrix $A$; LU factorization with partial row pivoting on leading block.</div>
+                      <div><strong>Purpose:</strong> Isolates independent pivot columns and derives explicit linear formulas for free columns.</div>
+                      <div><strong>Outcome:</strong> <span id="step2-outcome">Pivot and free columns identified.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\text{RREF: } \quad \text{rref}(A), \qquad \text{Block LU: } \quad P \cdot A_{\text{blk}} = L \cdot U \iff A_{\text{blk}} = P^T L U$$
+                  </div>
+                  <div id="step2-rref-summary" class="toggle-detail-box"></div>
+                  <div class="notion-preview-box">
+                    <div class="preview-header">
+                      <span>RREF Leading Block Matrix</span>
+                    </div>
+                    <div class="matrix-scroll" id="step2-rref-matrix"></div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- STAGE 3 -->
+              <details class="notion-toggle" id="stage-3" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 3</span>
+                  <span class="toggle-text">Structure of the Space: SVD Numerical Rank & Condition Number</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Singular values $\sigma_i$, numerical rank, nullity, and condition number $\kappa(A) = \sigma_1 / \sigma_r$.</div>
+                      <div><strong>Purpose:</strong> Quantifies near-collinearity and numerical inversion stability.</div>
+                      <div><strong>Outcome:</strong> <span id="step3-outcome">Calculated condition number and rank.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\text{Dimension Theorem: } \quad \text{rank}(A) + \text{nullity}(A) = d, \qquad \kappa(A) = \frac{\sigma_{\max}}{\sigma_{\min}} \ge 1$$
+                  </div>
+                  <div id="step3-stats-box" class="toggle-detail-box"></div>
+                </div>
+              </details>
+
+              <!-- STAGE 4 -->
+              <details class="notion-toggle" id="stage-4" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 4</span>
+                  <span class="toggle-text">Basis Selection (Pivoted QR) & Multicollinearity (VIF)</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Maximal linearly independent basis $B \in \mathbb{R}^{n \times r}$; VIF from diagonal of inverse correlation matrix.</div>
+                      <div><strong>Purpose:</strong> Prunes exact duplicate columns; flags features with $\text{VIF} > 5$ that inflate estimator variance.</div>
+                      <div><strong>Outcome:</strong> <span id="step4-outcome">Formed full-rank basis matrix B.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$B = A_{[:, \text{basis}]}, \quad \text{rank}(B) = r = \text{cols}(B), \qquad \text{VIF}_j = \left[(\text{corr}(B))^{-1}\right]_{jj}$$
+                  </div>
+                  <div id="step4-basis-display" class="toggle-detail-box"></div>
+                </div>
+              </details>
+
+              <!-- STAGE 5 -->
+              <details class="notion-toggle" id="stage-5" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 5</span>
+                  <span class="toggle-text">Modified Gram-Schmidt: Orthonormal Basis Q and Upper Triangular R</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Modified Gram-Schmidt factorization yielding orthonormal $Q$ and upper triangular $R$.</div>
+                      <div><strong>Purpose:</strong> Perpendicular columns eliminate geometric correlation; $R$ converts least squares into triangular back-substitution.</div>
+                      <div><strong>Outcome:</strong> <span id="step5-outcome">Constructed Q and R; verified QᵀQ = I.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\text{Factorization: } \quad B = Q \cdot R, \quad Q^T Q = I_r, \quad R_{j,j} = \|v_j\|_2 > 0$$
+                  </div>
+                  <div class="notion-preview-box">
+                    <div class="preview-header">
+                      <span>Orthonormal Basis Q Preview</span>
+                      <span class="mono">Error: machine epsilon</span>
+                    </div>
+                    <div class="matrix-scroll" id="step5-matrix-q"></div>
+                  </div>
+                </div>
+              </details>
+
+              <!-- STAGE 6 -->
+              <details class="notion-toggle" id="stage-6" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 6</span>
+                  <span class="toggle-text">Orthogonal Projection, Hat Matrix Leverage & Cook's Distance</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Projection $\hat{b} = Q (Q^T b)$, residual $e = b - \hat{b}$, hat matrix diagonal leverage $h_i = \text{diag}(Q Q^T)$, and Cook's influence metric.</div>
+                      <div><strong>Purpose:</strong> Finds closest reachable point in $\mathcal{C}(B)$; flags influential outlier points pulling the regression fit.</div>
+                      <div><strong>Outcome:</strong> <span id="step6-outcome">Decomposed b = b̂ + e; verified trace(H) = rank.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\hat{b} = Q (Q^T b), \quad e = b - \hat{b}, \quad h_i = \sum_{j=1}^r Q_{ij}^2, \quad D_i = \frac{e_i^2}{r s^2} \frac{h_i}{(1 - h_i)^2}$$
+                  </div>
+                  <div id="step6-norms-box" class="toggle-detail-box"></div>
+                </div>
+              </details>
+
+              <!-- STAGE 7 -->
+              <details class="notion-toggle" id="stage-7" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 7</span>
+                  <span class="toggle-text">Least Squares: QR Solver vs Normal Equations with Standard Errors & CIs</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Solving $R x = Q^T b$ vs $(B^T B) x = B^T b$; standard errors from covariance $\sigma^2 R^{-1} R^{-T}$.</div>
+                      <div><strong>Purpose:</strong> QR solves without squaring the condition number; yields analytical 95% confidence intervals.</div>
+                      <div><strong>Outcome:</strong> <span id="step7-outcome">Fitted optimal weights with confidence intervals.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\text{QR Estimator: } \quad R x = Q^T b, \qquad \text{Covariance: } \quad \text{Cov}(x) = s^2 (R^T R)^{-1} = s^2 R^{-1} R^{-T}$$
+                  </div>
+                  <div class="notion-database-table-wrap">
+                    <table class="notion-table">
+                      <thead>
+                        <tr>
+                          <th>Feature Name</th>
+                          <th class="num">QR Weight ($x_j$)</th>
+                          <th class="num">Normal Eq ($x_{\text{NE}}$)</th>
+                          <th class="num">Std Error ($\text{se}$)</th>
+                          <th class="num">95% Conf. Interval</th>
+                          <th class="num">VIF</th>
+                        </tr>
+                      </thead>
+                      <tbody id="weights-table-body"></tbody>
+                    </table>
+                  </div>
+                  <div id="step7-cond-comparison" class="toggle-detail-box"></div>
+                </div>
+              </details>
+
+              <!-- STAGE 8 -->
+              <details class="notion-toggle" id="stage-8" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 8</span>
+                  <span class="toggle-text">Spectral Decomposition: Covariance Matrix & Cyclic Jacobi Algorithm</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Eigen-decomposition of covariance $C = \frac{1}{n-1} B^T B = V \Lambda V^T$; equivalence to SVD $\lambda_i = \sigma_i^2 / (n - 1)$.</div>
+                      <div><strong>Purpose:</strong> Discovers orthogonal directions of maximum sample variance without matrix inversion.</div>
+                      <div><strong>Outcome:</strong> <span id="step8-outcome">Computed eigenvalues and eigenvectors.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\text{Spectral Theorem: } \quad C = V \Lambda V^T, \quad C v_i = \lambda_i v_i, \quad \lambda_i = \frac{\sigma_i(B)^2}{n - 1}, \quad \sum_{i=1}^r \lambda_i = \text{tr}(C)$$
+                  </div>
+                  <div id="step8-eigen-summary" class="toggle-detail-box"></div>
+                </div>
+              </details>
+
+              <!-- STAGE 9 -->
+              <details class="notion-toggle" id="stage-9" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 9</span>
+                  <span class="toggle-text">Subspace Regularization: PCA vs PCR vs Ridge via SVD & Eckart-Young</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> PCA variance rule vs cross-validated PCR vs Ridge singular shrinkage; Eckart-Young rank-k approximation.</div>
+                      <div><strong>Purpose:</strong> PCA drops low-variance directions without looking at target $b$; Ridge smoothly damps all directions by $\frac{\sigma}{\sigma^2 + \lambda}$, protecting predictive signal.</div>
+                      <div><strong>Outcome:</strong> <span id="step9-outcome">Evaluated hyperparameter selection curves and compression.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\text{Ridge via SVD: } \quad x_{\text{ridge}} = V \left[\frac{\sigma}{\sigma^2 + \lambda} \odot (U^T b)\right], \qquad \text{PCR: } \quad x_{\text{pcr}} = V_{:, :k} \left[(U_{:, :k}^T b) \oslash \sigma_{:k}\right]$$
+                  </div>
+                  <div id="step9-pca-summary" class="toggle-detail-box"></div>
+                </div>
+              </details>
+
+              <!-- STAGE 10 -->
+              <details class="notion-toggle" id="stage-10" open>
+                <summary class="toggle-heading">
+                  <span class="toggle-triangle">▶</span>
+                  <span class="toggle-num">Stage 10</span>
+                  <span class="toggle-text">Generalization Assessment: 5-Fold Cross-Validation Model Comparison</span>
+                </summary>
+                <div class="toggle-content">
+                  <div class="notion-callout yellow">
+                    <div class="callout-icon">📌</div>
+                    <div class="callout-content">
+                      <div><strong>Concept:</strong> Honest out-of-sample evaluation via 5-fold cross-validation with all scalers and basis selections refit inside each fold.</div>
+                      <div><strong>Purpose:</strong> Prevents data leakage; benchmarks linear models against a non-linear decision tree.</div>
+                      <div><strong>Outcome:</strong> <span id="step10-outcome">Completed 5-fold cross validation.</span></div>
+                    </div>
+                  </div>
+                  <div class="notion-math-block">
+                    $$\overline{\text{RMSE}} = \frac{1}{K} \sum_{k=1}^K \sqrt{\frac{1}{|V_k|} \sum_{i \in V_k} (y_i - \hat{y}_i)^2}$$
+                  </div>
+                  <div id="step10-comparison-box" class="toggle-detail-box"></div>
+                </div>
+              </details>
+
+            </div>
+          </section>
+
+          <!-- Clean Notion Page Footer -->
+          <footer class="notion-page-footer">
+            <div class="footer-meta">Linear Algebra Studio • Ported from Linear Algebra Pipeline v2/v3 • Pure Vanilla JS</div>
+          </footer>
+
         </div>
-
-        <!-- Archival Visualizations Grid -->
-        <div class="charts-grid">
-          <div class="chart-card">
-            <div class="chart-title">1. Predicted vs Actual (Test Set)</div>
-            <div class="chart-canvas-container">
-              <canvas id="chart-pred-actual"></canvas>
-            </div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-title">2. Scree Plot (Eigenvalues)</div>
-            <div class="chart-canvas-container">
-              <canvas id="chart-scree"></canvas>
-            </div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-title">3. Cumulative Explained Variance</div>
-            <div class="chart-canvas-container">
-              <canvas id="chart-cumvar"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- 10 Step-by-Step Textbook Sections -->
-        <div class="steps-container" id="steps-container">
-
-          <!-- STEP 1 -->
-          <article class="step-card" id="step-1">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 1</span>
-                <h3 class="step-title">Matrix Representation</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Representing observations as matrix $A \in \mathbb{R}^{n \times d}$ and target as vector $b \in \mathbb{R}^n$.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Linear algebra models system dynamics as $A x \approx b$; requires dense standardized coordinates.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step1-outcome">Constructed standardized training matrix $A$ and centered vector $b$.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Model Formulation: } \quad A x \approx b, \quad A_{i,j} = \frac{X_{i,j} - \mu_j}{\sigma_j}, \quad b_i = y_i - \bar{y}$$
-              </div>
-              <div class="matrix-container">
-                <div class="matrix-caption">
-                  <span>First Rows Preview of Standardized Matrix $A$</span>
-                  <span class="mono" id="step1-dims">Dimensions: —</span>
-                </div>
-                <div class="matrix-bracketed" id="step1-matrix-a">
-                  <!-- Rendered via JS -->
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- STEP 2 -->
-          <article class="step-card" id="step-2">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 2</span>
-                <h3 class="step-title">Matrix Simplification (RREF & LU Factorization)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Gaussian-Jordan elimination to RREF and LU factorization with partial row pivoting ($P A_{\text{blk}} = L U$).</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Exposes pivot positions, verifies linear equation solvability, and factors into triangular systems.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step2-outcome">Inspected leading $6 \times 6$ block; reconstructed $P L U = A_{\text{blk}}$ with zero residual error.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{LU Factorization with Partial Pivoting: } \quad P \cdot A_{\text{blk}} = L \cdot U \iff A_{\text{blk}} = P^T L U$$
-              </div>
-              <div class="matrix-container">
-                <div class="matrix-caption">
-                  <span>RREF of First Block</span>
-                  <span class="mono">Gauss-Jordan Form</span>
-                </div>
-                <div class="matrix-bracketed" id="step2-rref-matrix"></div>
-              </div>
-            </div>
-          </article>
-
-          <!-- STEP 3 -->
-          <article class="step-card" id="step-3">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 3</span>
-                <h3 class="step-title">Structure of the Space (Rank & Nullity)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Rank-Nullity Theorem: $\text{rank}(A) + \text{nullity}(A) = d$.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Counts how many features carry genuinely distinct information versus linear redundancy.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step3-outcome">Determined column space dimension and redundancy degree.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Fundamental Subspaces Dimension: } \quad \dim(\mathcal{C}(A)) = \text{rank}(A), \quad \dim(\mathcal{N}(A)) = d - \text{rank}(A)$$
-              </div>
-              <div id="step3-stats-box"></div>
-            </div>
-          </article>
-
-          <!-- STEP 4 -->
-          <article class="step-card" id="step-4">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 4</span>
-                <h3 class="step-title">Remove Redundancy (Linear Independence & Basis Selection)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Basis extraction via column-pivoted QR (greedy Gram-Schmidt with maximum norm pivoting).</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Discards collinear columns to ensure the remaining basis matrix $B$ has full column rank.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step4-outcome">Selected independent columns; pruned redundant feature combinations.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Basis Matrix: } \quad B = A_{[:, \text{basis}]}, \quad \text{rank}(B) = \text{cols}(B) = r$$
-              </div>
-              <div id="step4-basis-display"></div>
-            </div>
-          </article>
-
-          <!-- STEP 5 -->
-          <article class="step-card" id="step-5">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 5</span>
-                <h3 class="step-title">Orthogonalization (Gram-Schmidt Orthonormal Basis Q)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Gram-Schmidt process constructing orthonormal vectors $q_j$ such that $q_i^T q_j = \delta_{ij}$.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Eliminates geometric skew and numerical collinearity, simplifying orthogonal projection.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step5-outcome">Formed matrix $Q \in \mathbb{R}^{n \times r}$; verified $Q^T Q = I_r$ to machine precision.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Gram-Schmidt: } \quad v_j = b_j - \sum_{i=1}^{j-1} (q_i^T b_j) q_i, \quad q_j = \frac{v_j}{\|v_j\|_2}, \quad Q^T Q = I_r$$
-              </div>
-              <div class="matrix-container">
-                <div class="matrix-caption">
-                  <span>First Rows Preview of Orthonormal Matrix $Q$</span>
-                  <span class="mono" id="step5-q-check">Check: $Q^T Q = I$</span>
-                </div>
-                <div class="matrix-bracketed" id="step5-matrix-q"></div>
-              </div>
-            </div>
-          </article>
-
-          <!-- STEP 6 -->
-          <article class="step-card" id="step-6">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 6</span>
-                <h3 class="step-title">Orthogonal Projection & Residual Analysis</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Orthogonal projection of $b$ onto column space $\mathcal{C}(B)$: $\hat{b} = Q Q^T b$.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">When $b \notin \mathcal{C}(B)$, finds the unique closest point; the error is perpendicular to every column.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step6-outcome">Decomposed $b = \hat{b} + e$; confirmed $B^T e \approx 0$ and $\|b\|^2 = \|\hat{b}\|^2 + \|e\|^2$.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Orthogonal Decomposition: } \quad p = Q (Q^T b), \quad e = b - p, \quad B^T e = 0, \quad \|b\|_2^2 = \|p\|_2^2 + \|e\|_2^2$$
-              </div>
-              <div id="step6-norms-box"></div>
-            </div>
-          </article>
-
-          <!-- STEP 7 -->
-          <article class="step-card" id="step-7">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 7</span>
-                <h3 class="step-title">Least Squares Solution (QR vs Normal Equations)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Solving $R x = Q^T b$ vs $(B^T B) x = B^T b$ to find optimal regression coefficients.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">QR avoids squaring condition number $\kappa(B)$; both yield the same optimal parameter vector $x$.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step7-outcome">Fitted optimal weights; validated equality with normal equations solution.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Least Squares Estimator: } \quad x = (B^T B)^{-1} B^T b = R^{-1} Q^T b, \quad \text{where } B = Q R$$
-              </div>
-              <div class="weights-table-wrap">
-                <table class="weights-table">
-                  <thead>
-                    <tr>
-                      <th>Feature Name</th>
-                      <th class="num">Regression Weight ($x_j$)</th>
-                      <th class="num">Normal Eq Weight ($x_{\text{NE}}$)</th>
-                      <th class="num">Absolute Diff</th>
-                    </tr>
-                  </thead>
-                  <tbody id="weights-table-body"></tbody>
-                </table>
-              </div>
-            </div>
-          </article>
-
-          <!-- STEP 8 -->
-          <article class="step-card" id="step-8">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 8</span>
-                <h3 class="step-title">Eigen-Decomposition (Covariance & Jacobi Algorithm)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Spectral decomposition of sample covariance $C = V \Lambda V^T$ via cyclic Jacobi rotations.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Discovers principal axes of maximum variance and uncovers latent feature correlations.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step8-outcome">Calculated eigenvalues and eigenvectors; confirmed $C v_i = \lambda_i v_i$ and $\sum \lambda_i = \text{tr}(C)$.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Spectral Theorem: } \quad C = \frac{1}{n-1} B^T B = V \Lambda V^T, \quad C v_i = \lambda_i v_i, \quad \sum_{i=1}^r \lambda_i = \text{tr}(C)$$
-              </div>
-              <div id="step8-eigen-summary"></div>
-            </div>
-          </article>
-
-          <!-- STEP 9 -->
-          <article class="step-card" id="step-9">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 9</span>
-                <h3 class="step-title">Diagonalization / PCA (Dimensionality Reduction)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Selecting $k$ leading eigenvectors $W = [v_1, \dots, v_k]$ to capture $\ge$ target variance.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Compresses the data matrix $Z = B W$, filtering out weak noise directions.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step9-outcome">Projected data into lower-dimensional orthogonal subspace.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{PCA Projection: } \quad Z = B \cdot W, \quad W \in \mathbb{R}^{r \times k}, \quad Z \in \mathbb{R}^{n \times k}$$
-              </div>
-              <div id="step9-pca-summary"></div>
-            </div>
-          </article>
-
-          <!-- STEP 10 -->
-          <article class="step-card" id="step-10">
-            <header class="step-header">
-              <div class="step-title-wrap">
-                <span class="step-num">Step 10</span>
-                <h3 class="step-title">Final Output (Full Model vs Reduced Model vs Baseline)</h3>
-              </div>
-              <span class="step-toggle-icon">▼</span>
-            </header>
-            <div class="step-body">
-              <div class="margin-note-box">
-                <div class="note-item">
-                  <span class="note-label">Concept</span>
-                  <p class="note-text">Fitting regression on compressed representation $Z$ and evaluating out-of-sample generalization.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Purpose</span>
-                  <p class="note-text">Assesses trade-off between dimensionality reduction and predictive fidelity on test data.</p>
-                </div>
-                <div class="note-item">
-                  <span class="note-label">Outcome</span>
-                  <p class="note-text" id="step10-outcome">Quantified RMSE delta across Full, PCA-reduced, and trivial baseline models.</p>
-                </div>
-              </div>
-              <div class="math-block">
-                $$\text{Reduced Model: } \quad x_Z = (Z^T Z)^{-1} Z^T b, \quad \hat{y}_{\text{test}} = Z_{\text{test}} x_Z + \bar{y}$$
-              </div>
-              <div id="step10-comparison-box"></div>
-            </div>
-          </article>
-
-        </div>
-      </section>
-
-      <!-- TAB 2: VIVA CHEAT SHEET -->
-      <section class="tab-pane" id="pane-viva">
-        <div class="viva-section">
-          <div class="scoreboard-header">
-            <h2 class="scoreboard-title">Viva Examination Defense Cheat Sheet</h2>
-            <span class="dataset-tag">Concept → Why Needed → Result on Data</span>
-          </div>
-
-          <div class="viva-table-wrap">
-            <table class="viva-table">
-              <thead>
-                <tr>
-                  <th style="width: 70px;">Stage</th>
-                  <th style="width: 220px;">Mathematical Concept</th>
-                  <th>Why We Needed It</th>
-                  <th>Result on Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="viva-stage-num">Stage 1</td>
-                  <td><strong>Matrix $A$ and Vector $b$</strong></td>
-                  <td>Linear algebra only works on numeric matrices; standardizes features so scale differences don't distort inner products.</td>
-                  <td>Constructed standardized matrix $A \in \mathbb{R}^{n \times d}$ and zero-mean vector $b$.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 2</td>
-                  <td><strong>RREF & LU Factorization</strong></td>
-                  <td>Exposes pivot structure and equations by systematic elimination; factors block into $P L U = A_{\text{blk}}$ without inversion.</td>
-                  <td>Revealed pivot structure; $P L U$ reconstructed the block with zero error.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 3</td>
-                  <td><strong>Rank & Nullity</strong></td>
-                  <td>Counts how many columns carry genuinely new information vs exact collinear linear combinations.</td>
-                  <td>Rank $r$, nullity $d - r$; identified degree of informational redundancy.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 4</td>
-                  <td><strong>Linear Independence & Basis</strong></td>
-                  <td>Prunes linearly dependent columns using column-pivoted QR to form full-column-rank basis matrix $B$.</td>
-                  <td>Preserved $r$ basis columns; discarded all collinear combinations.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 5</td>
-                  <td><strong>Gram-Schmidt (Q)</strong></td>
-                  <td>Transforms basis into mutually perpendicular unit vectors ($Q^T Q = I_r$), preventing numerical instability.</td>
-                  <td>Produced orthonormal matrix $Q$; verified $Q^T Q = I_r$ to machine precision.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 6</td>
-                  <td><strong>Orthogonal Projection</strong></td>
-                  <td>Since $b \notin \mathcal{C}(B)$, finds the closest point $\hat{b} \in \mathcal{C}(B)$; residual is strictly perpendicular to every column.</td>
-                  <td>Split $b = \hat{b} + e$; confirmed $B^T e = 0$ and $\|b\|^2 = \|\hat{b}\|^2 + \|e\|^2$.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 7</td>
-                  <td><strong>Least Squares via QR</strong></td>
-                  <td>Computes weights $x$ via $R x = Q^T b$, which is well-conditioned compared to inverting $B^T B$.</td>
-                  <td>Produced optimal weights matching normal equations; computed train & test RMSE.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 8</td>
-                  <td><strong>Eigen-Decomposition (Jacobi)</strong></td>
-                  <td>Finds principal directions of maximum variance for symmetric covariance matrix $C = V \Lambda V^T$.</td>
-                  <td>Computed eigenvalues $\lambda_i$; verified $C v_i = \lambda_i v_i$ and $\sum \lambda_i = \text{tr}(C)$.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 9</td>
-                  <td><strong>Diagonalization / PCA</strong></td>
-                  <td>Rotates data onto main variance directions and drops weak noise components.</td>
-                  <td>Compressed $r$ features down to $k$ orthogonal components keeping $\ge 90\%$ variance.</td>
-                </tr>
-                <tr>
-                  <td class="viva-stage-num">Stage 10</td>
-                  <td><strong>Reduced Model Comparison</strong></td>
-                  <td>Evaluates whether compressed components retain predictive power on unseen test data.</td>
-                  <td>Compared Full vs Reduced vs Baseline test RMSE; measured compression efficiency.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Key Limitations Callout -->
-          <div class="viva-limitations-card">
-            <h3 class="viva-limitations-title">Critical Limitations to State During Oral Viva</h3>
-            <ul style="padding-left: 1.25rem; font-size: 0.85rem; line-height: 1.5; color: var(--text-main);">
-              <li><strong>Linearity Assumption:</strong> The pipeline model is strictly linear ($A x \approx b$). It cannot capture nonlinear interactions without polynomial or kernel expansions.</li>
-              <li><strong>Numeric Target Requirement:</strong> Requires a continuous numeric target $b$; not suitable for multi-class classification without logistic/softmax extensions.</li>
-              <li><strong>Unsupervised Nature of PCA:</strong> PCA selects directions of maximum feature variance without looking at the target $b$. If the predictive signal lies along low-variance directions, PCA compression can harm test RMSE.</li>
-              <li><strong>Sensitivity to Outliers:</strong> Least squares minimizes squared Euclidean distance ($\ell_2$ norm), making weights and eigenvalues sensitive to extreme outliers.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- TAB 3: EXPORT RESULTS -->
-      <section class="tab-pane" id="pane-export">
-        <div class="export-card">
-          <div class="scoreboard-header">
-            <h2 class="scoreboard-title">Export Pipeline Computation Results</h2>
-            <div class="export-actions">
-              <button type="button" class="btn-secondary" id="btn-copy-json">
-                <span>📋</span> Copy JSON
-              </button>
-              <button type="button" class="btn-secondary" id="btn-download-json">
-                <span>💾</span> Download JSON
-              </button>
-            </div>
-          </div>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">
-            Export complete mathematical artifacts: matrices, eigenvalues, weights, check verdicts, and out-of-sample metrics.
-          </p>
-          <pre class="json-preview-box" id="json-preview">Pipeline has not been executed yet. Click "Run Decomposition".</pre>
-        </div>
-      </section>
-
-    </main>
+      </main>
+    </div>
   </div>
 
   <!-- Toast Container -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- Footer -->
-  <footer class="site-footer">
-    <span>Linear Algebra Automated Data Analysis Tool • Pure Client-Side Vanilla JS • Zero Build Step • Web Worker Threading</span>
-  </footer>
-
   <!-- Scripts -->
   <script src="sample_datasets.js"></script>
+  <script src="worker.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
-

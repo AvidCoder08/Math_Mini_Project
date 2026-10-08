@@ -314,6 +314,12 @@ const SAMPLE_DIABETES_CSV = `age,sex,bmi,bp,s1,s2,s3,s4,s5,s6,target
 48.0,0,25.5,89.0,173.0,108.5,44.0,4.01,4.58,88.0,126
 68.0,1,40.0,134.0,270.0,160.0,36.0,6.01,5.75,112.0,350`;
 
-window.SAMPLE_HOUSING_CSV = SAMPLE_HOUSING_CSV;
-window.SAMPLE_DIABETES_CSV = SAMPLE_DIABETES_CSV;
+if (typeof window !== 'undefined') {
+  window.SAMPLE_HOUSING_CSV = SAMPLE_HOUSING_CSV;
+  window.SAMPLE_DIABETES_CSV = SAMPLE_DIABETES_CSV;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { SAMPLE_HOUSING_CSV, SAMPLE_DIABETES_CSV };
+}
 

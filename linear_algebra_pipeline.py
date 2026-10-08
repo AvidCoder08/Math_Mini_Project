@@ -37,8 +37,9 @@ np.set_printoptions(precision=3, suppress=True)
 
 # %%
 def preprocess(df, target):
-    df = df.dropna(subset=[target]).copy()
-    b = pd.to_numeric(df[target], errors="raise").values.astype(float)
+    b_num = pd.to_numeric(df[target], errors="coerce")
+    df = df.loc[b_num.notna()].copy()
+    b = b_num.dropna().values.astype(float)
     X = df.drop(columns=[target])
     notes = []
     for c in list(X.columns):                       # drop constant / ID-like columns
@@ -179,7 +180,7 @@ def fit_models(X_tr, b_tr, X_te, var_target=0.90):
     lam, _ = cv_select(B, bt, "ridge", LAMBDAS)
     out["Ridge via SVD (lambda by cross-val)"] = B_te @ solve_ridge_svd(B, bt, lam) + bm
 
-    rf = RandomForestRegressor(200, random_state=0, n_jobs=-1).fit(B, bt)
+    rf = RandomForestRegressor(50, random_state=0, n_jobs=1).fit(B, bt)
     out["Random forest (non-linear)"] = rf.predict(B_te) + bm
 
     sk = LinearRegression(fit_intercept=False).fit(B, bt).coef_
@@ -307,8 +308,8 @@ def run_pipeline(df, target, add_redundant=False, var_target=0.90,
     proj = Q @ (Q.T @ bt)                            # H b with H = Q Q^T
     resid = bt - proj
     lev = (Q ** 2).sum(1)                            # diag(H) without forming the n x n matrix
-    s2 = float(resid @ resid) / (n - r)
-    cook = resid ** 2 / (r * s2) * lev / (1 - lev) ** 2
+    s2 = float(resid @ resid) / max(1, n - r)
+    cook = resid ** 2 / (r * s2) * lev / (np.clip(1 - lev, 1e-12, None) ** 2)
     flag = np.where(lev > 2 * r / n)[0]
     checks["Residual perpendicular to columns"] = np.allclose(B.T @ resid, 0, atol=1e-5 * max(1, abs(bt).max()))
     checks["Projection is idempotent (H(Hb) = Hb)"] = np.allclose(Q @ (Q.T @ proj), proj, atol=1e-6 * max(1, abs(bt).max()))
@@ -408,15 +409,17 @@ def run_pipeline(df, target, add_redundant=False, var_target=0.90,
     tied = lin[lin["RMSE"] <= top["RMSE"] + top["RMSE_sd"]]            # within one fold-sd of the leader
     best = top["model"] if len(tied) == 1 else f"{top['model']} (tied within one fold-sd with {len(tied)-1} other linear model(s))"
     ols_r = float(table.loc[table.model == "OLS (QR least squares)", "RMSE"].iloc[0])
-    p90_r = float(table[table.model.str.startswith("PCR (9")]["RMSE"].iloc[0])
-    rf_r = float(table[table.model.str.startswith("Random")]["RMSE"].iloc[0])
+    pcr_var = table[table.model.str.contains("variance rule")]
+    p90_r = float(pcr_var["RMSE"].iloc[0]) if len(pcr_var) else float(table.iloc[2]["RMSE"])
+    rf_match = table[table.model.str.startswith("Random")]
+    rf_r = float(rf_match["RMSE"].iloc[0]) if len(rf_match) else ols_r
     if top["RMSE"] >= ols_row["RMSE"] - ols_row["RMSE_sd"]:
         simple = "plain OLS is good enough" if ols_row["RMSE"] <= top["RMSE"] + top["RMSE_sd"] else "regularisation is worth it"
     else: simple = "regularisation is worth it"
     lines = [f"{len(dropped)} column(s) were exactly redundant and removed: {dropped}." if dropped else "No exactly redundant columns.",
              f"Condition number {cond:.0f} ({level}); {len(high)} column(s) with VIF > 5.",
              f"Lowest cross-validated RMSE among linear models: {best}; {simple}."]
-    if p90_r > 1.05 * ols_r: lines.append(f"PCA (90% rule) was {100*(p90_r/ols_r-1):.0f}% worse than OLS: it ignores the target. Cross-validated k or ridge is safer.")
+    if p90_r > 1.05 * ols_r: lines.append(f"PCA ({int(var_target*100)}% rule) was {100*(p90_r/ols_r-1):.0f}% worse than OLS: it ignores the target. Cross-validated k or ridge is safer.")
     if rf_r < 0.95 * ols_r: lines.append("The random forest beats every linear model, so the relationship is not purely linear.")
     else: lines.append("No non-linear gain from a random forest, so a linear model is adequate here.")
     print("PLAIN-LANGUAGE SUMMARY")
@@ -488,45 +491,48 @@ def get_dataset(choice):
         return df, "MedHouseVal"
     raise ValueError("unknown dataset")
 
-# ---------- SETTINGS ----------
-USE_UPLOAD = False            # True -> upload your own CSV
-choice = "diabetes"           # diabetes | wine | breast_cancer | california
-target = None                 # only needed for uploaded CSV (column name to predict)
-CSV_PATH = "your_data.csv"    # used only when NOT on Colab and USE_UPLOAD = True
-ADD_REDUNDANT = False         # optional: add an exact duplicate column to demo rank/basis
-# ------------------------------
+if __name__ == "__main__":
+    # ---------- SETTINGS ----------
+    USE_UPLOAD = False            # True -> upload your own CSV
+    choice = "diabetes"           # diabetes | wine | breast_cancer | california
+    target = None                 # only needed for uploaded CSV (column name to predict)
+    CSV_PATH = "your_data.csv"    # used only when NOT on Colab and USE_UPLOAD = True
+    ADD_REDUNDANT = False         # optional: add an exact duplicate column to demo rank/basis
+    # ------------------------------
 
-if USE_UPLOAD:
-    try:
-        from google.colab import files
-        up = files.upload()
-        df = pd.read_csv(next(iter(up)))
-    except ImportError:                                  # running locally / Jupyter
-        df = pd.read_csv(CSV_PATH)
-    print("Columns:", list(df.columns))
-    assert target in df.columns, "Set `target` to one of the column names above"
-else:
-    df, target = get_dataset(choice)
-    print(f"Dataset: {choice} | target: {target} | shape: {df.shape}")
+    if USE_UPLOAD:
+        try:
+            from google.colab import files
+            up = files.upload()
+            df = pd.read_csv(next(iter(up)))
+        except ImportError:                                  # running locally / Jupyter
+            df = pd.read_csv(CSV_PATH)
+        print("Columns:", list(df.columns))
+        assert target in df.columns, "Set `target` to one of the column names above"
+    else:
+        df, target = get_dataset(choice)
+        print(f"Dataset: {choice} | target: {target} | shape: {df.shape}")
 
-results = run_pipeline(df, target, add_redundant=ADD_REDUNDANT)
+    results = run_pipeline(df, target, add_redundant=ADD_REDUNDANT)
 
-# %% [markdown]
-# ## 7. Generalisation test: same code, many datasets
-
-# %%
-rows = []
-for name in ["diabetes", "wine", "breast_cancer"]:
-    d_, t_ = get_dataset(name)
-    with contextlib.redirect_stdout(io.StringIO()):          # silence step output
-        r_ = run_pipeline(d_, t_, plots=False)
-    tb = r_["table"].set_index("model")["RMSE"]
-    rows.append(dict(dataset=name, rank=r_["rank"], cond=round(r_["cond"]), dropped=r_["dropped"],
-                     k_vs_90rule=f"{r_['k_cv']} vs {r_['k90']}", OLS=round(tb.iloc[1], 2),
-                     PCR90=round(tb.iloc[2], 2), PCR_cv=round(tb.iloc[3], 2), Ridge=round(tb.iloc[4], 2),
-                     RandomForest=round(tb.iloc[5], 2), Baseline=round(tb.iloc[0], 2),
-                     best=r_["best"], all_checks_pass=all(r_["checks"].values())))
-pd.DataFrame(rows)
+    # Generalisation test: same code, many datasets
+    print("\n" + "=" * 60)
+    print("GENERALISATION TEST: SAME CODE, MANY DATASETS")
+    print("=" * 60)
+    rows = []
+    for name in ["diabetes", "wine", "breast_cancer"]:
+        d_, t_ = get_dataset(name)
+        with contextlib.redirect_stdout(io.StringIO()):          # silence step output
+            r_ = run_pipeline(d_, t_, plots=False)
+        tb = r_["table"].set_index("model")["RMSE"]
+        pcr90_val = tb.loc[tb.index.str.contains("variance rule")].iloc[0] if any(tb.index.str.contains("variance rule")) else tb.iloc[2]
+        rows.append(dict(dataset=name, rank=r_["rank"], cond=round(r_["cond"]), dropped=r_["dropped"],
+                         k_vs_90rule=f"{r_['k_cv']} vs {r_['k90']}", OLS=round(tb.iloc[1], 2),
+                         PCR90=round(pcr90_val, 2), PCR_cv=round(tb.iloc[3], 2), Ridge=round(tb.iloc[4], 2),
+                         RandomForest=round(tb.iloc[5], 2), Baseline=round(tb.iloc[0], 2),
+                         best=r_["best"], all_checks_pass=all(r_["checks"].values())))
+    summary_df = pd.DataFrame(rows)
+    print(summary_df.to_string(index=False))
 
 # %% [markdown]
 # ## 8. Viva cheat sheet (Concept -> Purpose -> Outcome)
